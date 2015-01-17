@@ -30,3 +30,6 @@
 
 # Bin directories
 bin/
+
+# Temp backup files
+*~
