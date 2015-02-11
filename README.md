@@ -13,19 +13,24 @@ Spend 5 mins to have a look at this guide [Understanding the github flow](https:
 Here's a animated demo
 ![demo](https://cloud.githubusercontent.com/assets/296432/4485188/881f7a92-49c6-11e4-83dc-bee67d89c139.gif)
 
+
 ##Good Summary of Synchronization Primitives
 ###[Synchronization primitives](http://www.cs.columbia.edu/~hgs/os/sync.html)
 
 Note that there are no "official" definitions for these terms, so different texts and implementations associate slightly different characteristics with each primitive.
 
 ####semaphores
-    Two operations, performed by any thread:
-    original Dijkstra 	P() 	V()
-    Tanenbaum 	down() 	up()
-    POSIX 	sem_wait() 	sem_post()
-    Silberschatz 	wait() 	signal()
-    operation 	while (s==0) {wait}; s-- 	s++
-    Note that signals are saved, unlike condition variables. Useful for counting resources (initial value > 1), to implement mutexes (initial value 1) or to signal completion of code across threads (initial value 0). Some semaphore implementations allow decrementing by more than one. 
+
+Two operations, performed by any thread:
+
+original Dijkstra |`P()`|`V()`
+-----------------|-----|-----
+Tanenbaum |`down()` |`up()`
+POSIX |	`sem_wait()` |`sem_post()`
+Silberschatz |`wait()` |`signal()`
+operation |`while (s==0) {wait}; s--` |`s++`
+
+Note that signals are saved, unlike condition variables. Useful for counting resources (initial value > 1), to implement mutexes (initial value 1) or to signal completion of code across threads (initial value 0). Some semaphore implementations allow decrementing by more than one. 
 
 ####mutex
     Also known as a lock. Supports lock/unlock operation. In many implementations, the same thread must lock and unlock, but different threads can share the same mutex. POSIX says: "Mutexes have ownership, unlike semaphores. Although any thread, within the scope of a mutex, can get an unlocked mutex and lock access to the same critical section of code, only the thread that locked a mutex can unlock it." Can be implemented via a semaphore. 
