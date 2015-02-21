@@ -12,6 +12,9 @@
 #include <pthread.h>
 
 #define PORT_NUM "4950"
+const char * port_master2slave = "4000";
+const char * port_slave2master = "5000";
+const char * port_slave2master = "5000";
 struct addrinfo *servinfo;
 struct sockaddr_storage their_addr;
 socklen_t addr_len;
@@ -131,10 +134,12 @@ int socket_create_wrapper(const char * port_num, time_t tv_sec, suseconds_t tv_u
 }
 char strbuf[100]={0};
 pthread_t slave_listen_th, master_listen_th;
+
 typedef struct {
 	pthread_t thid;
 	long int fd;
 } pass_to_listner_t;
+
 void * listener(void * data){
 	pass_to_listner_t * s = (pass_to_listner_t *)data;
 	char buf[101];
