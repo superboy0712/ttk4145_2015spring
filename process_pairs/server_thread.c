@@ -35,30 +35,33 @@ typedef struct  {
 	int client_fd; //
 } th_data_t;
 /* number of thread created */
-static int n_run_thread = 0;
+static int n_client = 0;
 pthread_mutex_t mutex_n_th = PTHREAD_MUTEX_INITIALIZER;
 static const ssize_t buffer_length = 30;
 static void exit_routine(th_data_t * th_p){
 	pthread_mutex_lock(&mutex_n_th);
-	n_run_thread --;
+	n_client --;
 	pthread_mutex_unlock(&mutex_n_th);
 	// print sth to the server
-	printf("client %d leaved, %d clients online now!\n",th_p->client_fd,n_run_thread);
+	printf("client %d leaved, %d clients online now!\n",th_p->client_fd,n_client);
 	/* close the connection */
 	close(th_p->client_fd);
 	free(th_p->tid_p);
 	free(th_p);
+	if(n_client == 0){ /** ensure at least one client **/
+		system("gnome-terminal -e ./combine.out");
+	}
 	pthread_exit(NULL);
 }
 static void * server( void * th_dp){
 	// indicate num ++
 	pthread_mutex_lock(&mutex_n_th);
-		n_run_thread ++;
+		n_client ++;
 	pthread_mutex_unlock(&mutex_n_th);
 	// fetch the 'packet'
 	th_data_t * p = (th_data_t *)th_dp;
 	// print something to the server
-	printf("client %d joined, %d clients online now!\n",p->client_fd,n_run_thread);
+	printf("client %d joined, %d clients online now!\n",p->client_fd,n_client);
 	// allocating buffer
 	char * text;
 	text = (char *)malloc(buffer_length);
@@ -129,7 +132,8 @@ static int server_thread_create_wrapper(int new_client_fd){
 }
 
 void *server_main(void * data){
-	data = NULL;
+	data = NULL;// keep compiler happy
+START:
 	pthread_mutex_lock(&signal_master_dead_mtx);
 	pthread_cond_wait(&signal_master_dead_cv, &signal_master_dead_mtx);
 	pthread_mutex_unlock(&signal_master_dead_mtx);
@@ -145,7 +149,16 @@ void *server_main(void * data){
 	error_handle(sock_fd == -1, "socket");
 	/* bind the address */
 	rc = bind(sock_fd, res_ai->ai_addr, res_ai->ai_addrlen);
-	error_handle(rc == -1, "bind");
+	if(rc == -1){
+		perror("bind");
+		sleep(1);
+		pthread_mutex_lock(&signal_master_dead_mtx);
+		pthread_cond_signal(&signal_server_bind_failed_cv);
+		pthread_mutex_unlock(&signal_master_dead_mtx);
+		goto START;
+	}
+	/** the right position to call */
+	system("gnome-terminal -e ./combine.out");
 	char dst[50];
 	const char * temp = inet_ntop(res_ai->ai_family, res_ai->ai_addr, dst, res_ai->ai_addrlen);
 	printf("my ip: %s\n ip2: %s\n", temp, dst);

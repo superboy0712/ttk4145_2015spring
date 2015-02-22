@@ -44,12 +44,17 @@ NEW_SOCKET:
 	 *  if( new_socket_count > limit ) transit to master/server state
 	 */
 		if( new_socket_count > retry_times ){
+			new_socket_count = 0;
 			pthread_mutex_lock(&signal_master_dead_mtx);
 			pthread_cond_signal(&signal_master_dead_cv);
 			pthread_mutex_unlock(&signal_master_dead_mtx);
-			sleep(2);
+			// avoid multiple slaves compete to be master, only the quickest win, the others transit back to slaves
+			/**
+			 *
+			 */
+
 			pthread_mutex_lock(&signal_master_dead_mtx);
-			pthread_cond_wait(&signal_master_dead_cv, &signal_master_dead_mtx);
+			pthread_cond_wait(&signal_server_bind_failed_cv, &signal_master_dead_mtx);
 			pthread_mutex_unlock(&signal_master_dead_mtx);
 			//pthread_exit(EXIT_SUCCESS);
 		}
