@@ -104,9 +104,17 @@ void * LightDriverThread(){
 	usleep(10000);
 	return 0;
 }
+
+
+static int motor_moving_vector = 0;
+int get_motor_moving_vector(void){
+	return motor_moving_vector;
+}
+
 void * goto_desired_floor_thread()
 {
 	int read_desired_floor;
+	int last_stable_floor = 1; /* init moving downwards until reach a stable */
 	while(1)
 	{	
 		pthread_mutex_lock(&desired_floor_lock);
@@ -118,9 +126,14 @@ void * goto_desired_floor_thread()
 		  )
 		{
 			
-			int sensor = elev_get_floor_sensor_signal();  
+			int sensor = elev_get_floor_sensor_signal();  /* last floor */
 			if(sensor != -1){
-				elev_set_motor_direction(read_desired_floor - sensor);
+				last_stable_floor = sensor;
+				motor_moving_vector = read_desired_floor - sensor;
+				elev_set_motor_direction(motor_moving_vector);
+			} else {
+				/** get to nearest fixed floor downwards, not somewhere in between  **/
+				elev_set_motor_direction(read_desired_floor - last_stable_floor);
 			}
 		}
 		usleep(10000);
@@ -149,22 +162,22 @@ int main(){
 	pthread_t button_get_th, light_drive_th, goto_desire_th, keyboard_read_th;
 	int rc = pthread_create(&button_get_th, NULL, ButtonGetThread, NULL);
 	if (rc){
-		printf("ERROR; return code from pthread_create() is %d\n", rc);
+		perror("pthread_create");
 		exit(-1);
 	}
 	rc = pthread_create(&light_drive_th, NULL, LightDriverThread, NULL);
 	if (rc){
-		printf("ERROR; return code from pthread_create() is %d\n", rc);
+		perror("pthread_create");
 		exit(-1);
 	}
 	rc = pthread_create(&goto_desire_th, NULL, goto_desired_floor_thread, NULL);
 	if (rc){
-		printf("ERROR; return code from pthread_create() is %d\n", rc);
+		perror("pthread_create");
 		exit(-1);
 	}
 	rc = pthread_create(&keyboard_read_th, NULL, keyboard_read_thread, NULL);
 	if (rc){
-		printf("ERROR; return code from pthread_create() is %d\n", rc);
+		perror("pthread_create");
 		exit(-1);
 	}
 	while(1){
