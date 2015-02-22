@@ -39,3 +39,4 @@ bin/
 #ld file
 *.ld
 *.out
+*.d
