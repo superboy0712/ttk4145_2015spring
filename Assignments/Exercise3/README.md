@@ -55,9 +55,10 @@ Exercise
 
 ###TCP:
 
-The address of the server will be the same as the address the UDP server spammed out on port 30000.
+The IP address of the server will be the same as the address the UDP server spammed out on port 30000.
 ####Connecting:
  - Connect to the TCP server. It will send you a welcome-message when you connect.
+  - Use port `34933` for fixed-size messages, or port `33546` for 0-terminated messages.
  - The server will then echo anything you say to it back to you (as long as your message ends with '\0'). Try sending and receiving a few messages.
 
 ####Accepting connections:
