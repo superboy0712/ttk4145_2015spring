@@ -56,6 +56,7 @@ int door_open_light;
 	.stop_light = 0,
 	.door_open_light = 0
 };
+pthread_mutex_t desired_floor_lock = PTHREAD_MUTEX_INITIALIZER;
 int DesiredFloor = 0;
 void *ButtonGetThread(){
 	while(1){
@@ -105,17 +106,21 @@ void * LightDriverThread(){
 }
 void * goto_desired_floor_thread()
 {
+	int read_desired_floor;
 	while(1)
 	{	
+		pthread_mutex_lock(&desired_floor_lock);
+		read_desired_floor = DesiredFloor;
+		pthread_mutex_unlock(&desired_floor_lock);
 		if(
-			(DesiredFloor >= 0)&&(DesiredFloor <= 3)
+			(read_desired_floor >= 0)&&(read_desired_floor <= 3)
 		    
 		  )
 		{
 			
 			int sensor = elev_get_floor_sensor_signal();  
 			if(sensor != -1){
-				elev_set_motor_direction(DesiredFloor - sensor);
+				elev_set_motor_direction(read_desired_floor - sensor);
 			}
 		}
 		usleep(10000);
@@ -123,12 +128,16 @@ void * goto_desired_floor_thread()
 }
 
 void * keyboard_read_thread(){
+//	FILE * keyin = fopen("./keyboard_in", "r" );
+//	FILE * keyout = fopen("./keyboard_out", "w");
 	while(1){
 		int read;
-		printf("\nInput floor: ");
-		scanf("%d", &read);
-		printf("\nDesired floor is: %d",read);
+		printf(  "\nInput floor: ");
+		scanf( "%d", &read);
+		printf( "\nDesired floor is: %d",read);
+		pthread_mutex_lock(&desired_floor_lock);
 		DesiredFloor = read;
+		pthread_mutex_unlock(&desired_floor_lock);
 	}
 	return NULL;
 }
@@ -170,7 +179,6 @@ int main(){
 			Light_Status.floor_light = Input_Status.floor_sensor;
 
 		Light_Status.stop_light = Input_Status.stop_button;
-				
 		
 		usleep(10000);
 
