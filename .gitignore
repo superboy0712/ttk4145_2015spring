@@ -28,9 +28,14 @@
 *.x86_64
 *.hex
 *.elf
+*bin
 
 # Bin directories
 bin/
 
 # Temp backup files
 *~
+
+#ld file
+*.ld
+*.out
