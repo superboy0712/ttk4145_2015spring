@@ -61,12 +61,12 @@ int main(){
 		light_to_write.stop_light = ((input_read.stop_button - last_stop_button) == 1)? (!light_to_write.stop_light) : light_to_write.stop_light;
 		last_stop_button = input_read.stop_button;
 		/**************************************/
-//		if(light_to_write.stop_light||input_read.obst_button){
-//			set_desired_floor(MOTOR_EM_STOP_CMD);
-//		}
+		if(light_to_write.stop_light||input_read.obst_button){
+			set_desired_floor(MOTOR_EM_STOP_CMD);
+		}
 		/******************************************************************************/
 		/* button value translated into accepted requests */
-
+// TODO BELOW IS BUGGY CODE. MAKE FLOOR TO SET TO 3.
 //		for( int i = 0; i < N_FLOORS; i++){
 //			for( int j = 0; j < 3; j++){
 //				if(light_to_write.floor_button_lights[i][j] != -1){
@@ -76,7 +76,8 @@ int main(){
 //				}
 //			}
 //		}
-		memcpy(last_Button_external, input_read.Button_external, N_FLOORS*3*sizeof(int) );
+		memcpy(light_to_write.floor_button_lights, input_read.Button_external, N_FLOORS*3*sizeof(int) );
+		light_to_write.door_open_light = 0;
 		set_light_status(light_to_write);
 		pthread_mutex_unlock(input_event_ptr->mutex);
 

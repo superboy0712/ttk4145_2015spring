@@ -177,7 +177,9 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 				 * if still -1, then means power was down, init necessarily
 				 */
 			}
-		} else if (read_desired_floor == MOTOR_EM_STOP_CMD){
+		}
+
+		if (light_status.stop_light||input_status.obst_button||light_status.door_open_light){
 			elev_set_motor_direction(0);
 		}
 		usleep(25000);
