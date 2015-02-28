@@ -125,7 +125,6 @@ void * LightDriverThread(){
 	return 0;
 }
 
-
 static int motor_moving_vector = 0;
 /** 0 - reached desired floor
  *  signed integer - moving directions and distance left, also means busy
@@ -223,17 +222,32 @@ int main(){
 		perror("pthread_create");
 		exit(-1);
 	}
+    /* temp for detecting rising edge events */
+	int last_Button_external[N_FLOORS][3] =
+		{
+			/*0*/	{0,	-1,	0},
+			/*1*/	{0,	0,	0},
+			/*2*/	{0,	0,	0},
+			/*3*/	{-1,	0,	0}
+		};
+	int last_floor_sensor = 0;
+	int last_obst_button = 0;
+	int last_stop_button = 0;
+
 	while(1){
 
 		pthread_mutex_lock(&(Input_Status.lock));
 			pthread_cond_wait(&input_changed_cv, &(Input_Status.lock));
+			memcpy(last_Button_external, Input_Status.Button_external, N_FLOORS*3*sizeof(int) );
+			last_floor_sensor = Input_Status.floor_sensor;
+			last_stop_button = Input_Status.stop_button;
+			last_obst_button = Input_Status.obst_button;
 		pthread_mutex_unlock(&(Input_Status.lock));
 
 		if(Input_Status.floor_sensor != -1)
 			Light_Status.floor_light = Input_Status.floor_sensor;
-
-		Light_Status.stop_light = (Input_Status.stop_button)? (!Light_Status.stop_light) : Light_Status.stop_light;
-		
+		/* making it triggered in rising edge */
+		Light_Status.stop_light = ((Input_Status.stop_button - last_stop_button) == 1)? (!Light_Status.stop_light) : Light_Status.stop_light;
 		if(Light_Status.stop_light||Input_Status.obst_button){
 			pthread_mutex_lock(&desired_floor_lock);
 			DesiredFloor = MOTOR_EM_STOP_CMD;
@@ -246,7 +260,7 @@ int main(){
 			for( int j = 0; j < 3; j++){
 				if(Light_Status.Button_lights[i][j] != -1){
 					Light_Status.Button_lights[i][j]
-					= (Input_Status.Button_external[i][j])? IsRequestAccepted(j, i) : Light_Status.Button_lights[i][j];
+					= (Input_Status.Button_external[i][j])? !IsRequestAccepted(j, i) : Light_Status.Button_lights[i][j];
 
 				}
 			}
