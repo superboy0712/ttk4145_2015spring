@@ -185,9 +185,9 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 }
 
 void * light_driver_thread(){
-	light_status_t light_status;
+	//light_status_t light_status;
 	while(1){
-		light_status = get_light_status();
+		//light_status = get_light_status();
 		for( int i = 0; i < N_FLOORS; i++){
 			for( int j = 0; j < 3; j++){
 				if(light_status.floor_button_lights[i][j] != -1)
@@ -198,12 +198,13 @@ void * light_driver_thread(){
 				}
 			}
 		}
-		if(light_status.floor_indicator_light<0 || light_status.floor_indicator_light> N_FLOORS-1)
-			continue;
-		elev_set_floor_indicator(light_status.floor_indicator_light);
+		int floor_indicator_light = elev_get_floor_sensor_signal();
+		if(floor_indicator_light>=0 && floor_indicator_light< N_FLOORS)
+			elev_set_floor_indicator(floor_indicator_light);
+
 		elev_set_stop_lamp(light_status.stop_light);
 		elev_set_door_open_lamp(light_status.door_open_light);
-		usleep(100000);
+		usleep(10000);
 	}
 
 	return 0;

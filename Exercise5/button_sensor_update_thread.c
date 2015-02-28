@@ -10,12 +10,12 @@ void * keyboard_read_thread(){
 //	FILE * keyin = fopen("./keyboard_in", "r" );
 //	FILE * keyout = fopen("./keyboard_out", "w");
 	while(1){
-	//	int read;
-//		printf(  "\nInput floor: ");
-//		scanf( "%d", &read);
-//		printf( "\nDesired floor is: %d",read);
-//		set_desired_floor(read);
-		sleep(1);
+		int read;
+		printf(  "\nInput floor: ");
+		scanf( "%d", &read);
+		printf( "\nDesired floor is: %d",read);
+		set_desired_floor(read);
+		//sleep(1);
 	}
 	return NULL;
 }
@@ -55,17 +55,15 @@ int main(){
 
 			//last_floor_sensor = Input_Status.floor_sensor;
 			//last_obst_button = Input_Status.obst_button;
-			input_read = get_input_status_unsafe();
+		input_read = get_input_status_unsafe();
 
-		if(input_read.floor_sensor != -1)
-			light_to_write.floor_indicator_light = input_read.floor_sensor;
 		/* making it triggered in rising edge */
 		light_to_write.stop_light = ((input_read.stop_button - last_stop_button) == 1)? (!light_to_write.stop_light) : light_to_write.stop_light;
 		last_stop_button = input_read.stop_button;
 		/**************************************/
-		if(light_to_write.stop_light||input_read.obst_button){
-			set_desired_floor(MOTOR_EM_STOP_CMD);
-		}
+//		if(light_to_write.stop_light||input_read.obst_button){
+//			set_desired_floor(MOTOR_EM_STOP_CMD);
+//		}
 		/******************************************************************************/
 		/* button value translated into accepted requests */
 
@@ -78,8 +76,8 @@ int main(){
 //				}
 //			}
 //		}
-//		memcpy(last_Button_external, input_read.Button_external, N_FLOORS*3*sizeof(int) );
-//		set_light_status(light_to_write);
+		memcpy(last_Button_external, input_read.Button_external, N_FLOORS*3*sizeof(int) );
+		set_light_status(light_to_write);
 		pthread_mutex_unlock(input_event_ptr->mutex);
 
 	}
