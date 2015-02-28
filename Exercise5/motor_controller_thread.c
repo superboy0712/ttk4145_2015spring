@@ -7,7 +7,8 @@
  *	Email			: yulongb@stud.ntnu.no
  *  Description		:
  *****************************************************************/
-
+#include "elevator_model_data_structure.h"
+#include "elev.h"
 
 
 

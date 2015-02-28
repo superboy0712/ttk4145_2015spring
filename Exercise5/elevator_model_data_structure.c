@@ -8,18 +8,23 @@
  *  Description		:
  *****************************************************************/
 #include <pthread.h>
-#include "elev.h"
-static pthread_mutex_t input_status_lock = PTHREAD_MUTEX_INITIALIZER;
-typedef struct input_status_st{
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-	// button table to represent the current button status
-	//each floor has 3 types: UP DOWN CMD
-	// -1 stands for not existing
-	int Button_external[N_FLOORS][3];
-	int floor_sensor;
-	int stop_button;
-	int obst_button;
-} input_status_t;
+#include "io.h"
+#include "elevator_model_data_structure.h"
+
+#define MOTOR_EM_STOP_CMD 0xffff
+pthread_mutex_t input_status_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t input_changed_cv = PTHREAD_COND_INITIALIZER;
+static event_t input_events
+={
+		.cv = &input_changed_cv,
+		.mutex = &input_status_lock
+};
+
+event_t * const input_event_ptr = &input_events;
 
 static input_status_t input_status
 =
@@ -42,19 +47,13 @@ input_status_t get_input_status(void){
 	pthread_mutex_unlock(&input_status_lock);
 	return ret;
 }
+input_status_t get_input_status_unsafe(void){
+	return input_status;
+}
 /**
  *  light status related
  */
 static pthread_mutex_t light_status_lock = PTHREAD_MUTEX_INITIALIZER;
-typedef struct light_status_st{
-	// button table to represent the current button status
-	//each floor has 3 types: UP DOWN CMD
-	// -1 stands for not existing
-	int floor_button_lights[N_FLOORS][3];
-	int floor_indicator_light;/* 0 - 3 */
-	int stop_light;
-	int door_open_light;
-} light_status_t;
 
 static light_status_t light_status
 =
@@ -79,6 +78,8 @@ light_status_t get_light_status(void){
 void set_light_status(const light_status_t status){
 	pthread_mutex_lock(&light_status_lock);
 	light_status = status;
+	light_status.floor_button_lights[0][1]=-1;
+	light_status.floor_button_lights[N_FLOORS-1][0]=-1;
 	pthread_mutex_unlock(&light_status_lock);
 }
 /**
@@ -93,14 +94,169 @@ int get_desired_floor(void){
 	return ret;
 }
 void set_desired_floor(const int floor){
-	pthread_mutex_lock(&desired_floor_lock);
-	desired_floor = floor;
-	pthread_mutex_unlock(&desired_floor_lock);
+	if((floor>=0 && floor<=N_FLOORS-1) || floor==MOTOR_EM_STOP_CMD)
+	{
+		pthread_mutex_lock(&desired_floor_lock);
+		desired_floor = floor;
+		pthread_mutex_unlock(&desired_floor_lock);
+	}
+}
+void *input_polling_thread(void * data){
+	data = NULL;
+	while(1){
+		pthread_mutex_lock(&input_status_lock);
+		puts("reading buttons: outside:\tFLOOR \tUP \tDONW \tCMD ");
+		for(int i = 0; i < N_FLOORS; i++ ){
+
+			int up = (i==3)? (-1):elev_get_button_signal(BUTTON_CALL_UP,i);
+			int down = (i==0)? (-1):elev_get_button_signal(BUTTON_CALL_DOWN,i);
+			int cmd = elev_get_button_signal(BUTTON_COMMAND,i);
+			input_status.Button_external[i][BUTTON_CALL_UP] = up;
+			input_status.Button_external[i][BUTTON_CALL_DOWN] = down;
+			input_status.Button_external[i][BUTTON_COMMAND] = cmd;
+			printf("\t\t\t\t%d \t%d \t%d \t%d\n", i,
+			up,
+			down,
+			cmd);
+		}
+
+
+		input_status.floor_sensor = elev_get_floor_sensor_signal();
+		printf("Current sensor value is:%d\n",input_status.floor_sensor);
+		input_status.obst_button = elev_get_obstruction_signal();
+		printf("Current obst value is:%d\n",input_status.obst_button);
+		input_status.stop_button = elev_get_stop_signal();
+		printf("Current stop value is:%d\n",input_status.stop_button);
+
+		printf("Current floor value is:%d\n",desired_floor);
+
+		pthread_mutex_unlock(&input_status_lock);
+		usleep(50000);
+	}
+	return NULL;
 }
 
-int main(int argc, char **argv) {
-	argc = 1;
-	argv = NULL;
+/** 0 - reached desired floor
+ *  signed integer - moving directions and distance left, also means busy
+ */
+static int motor_moving_vector = 0;
+int get_motor_moving_vector(void){
+	return motor_moving_vector;
+}
+
+/* input: read_desired_floor */
+void * motor_driver_thread(void * data_motor_controller_ptr)
+{
+	data_motor_controller_ptr = NULL;
+	int read_desired_floor = 0;
+	int last_stable_floor = 1; /* init moving downwards until reach a stable */
+	while(1)
+	{
+		read_desired_floor = get_desired_floor();
+		//read_desired_floor = desired_floor;
+		if(
+			(read_desired_floor >= 0)&&(read_desired_floor <= N_FLOORS-1)
+
+		  )
+		{
+
+			int sensor = elev_get_floor_sensor_signal();  /* last floor */
+			if(sensor != -1){
+				last_stable_floor = sensor;
+				motor_moving_vector = read_desired_floor - sensor;
+				elev_set_motor_direction(motor_moving_vector);
+//				if(motor_moving_vector == 0){
+//					/* reach the desired floor, notify the dispatcher */
+//				}
+			} else {
+				/** get to nearest fixed floor downwards, not somewhere in between  **/
+				elev_set_motor_direction(read_desired_floor - last_stable_floor);
+				/**
+				 * TODO add timeout detection here. if the sensor
+				 * keep -1 for longer than 10 seconds, change direction;
+				 * if still -1, then means power was down, init necessarily
+				 */
+			}
+		} else if (read_desired_floor == MOTOR_EM_STOP_CMD){
+			elev_set_motor_direction(0);
+		}
+		usleep(25000);
+	}
+}
+
+void * light_driver_thread(){
+	light_status_t light_status;
+	while(1){
+		light_status = get_light_status();
+		for( int i = 0; i < N_FLOORS; i++){
+			for( int j = 0; j < 3; j++){
+				if(light_status.floor_button_lights[i][j] != -1)
+				{
+					if((i==0 && j==BUTTON_CALL_DOWN)||(i==(N_FLOORS-1)&& j== BUTTON_CALL_UP))
+						continue;
+					elev_set_button_lamp(j, i, light_status.floor_button_lights[i][j]);
+				}
+			}
+		}
+		if(light_status.floor_indicator_light<0 || light_status.floor_indicator_light> N_FLOORS-1)
+			continue;
+		elev_set_floor_indicator(light_status.floor_indicator_light);
+		elev_set_stop_lamp(light_status.stop_light);
+		elev_set_door_open_lamp(light_status.door_open_light);
+		usleep(100000);
+	}
+
 	return 0;
 }
+
+/* compare latest two polling of input status, if changed then issue an input event */
+/* the waiting one should wait for event_t to capture and parse relative event */
+void *input_event_dispatcher_thread(void * data){
+	data = NULL;
+	input_status_t last_input_status;
+	while(1){
+		last_input_status = get_input_status();
+		usleep(10000);
+			pthread_mutex_lock((input_events.mutex));
+			if(memcmp(&input_status, &last_input_status, sizeof(input_status_t))){
+				pthread_cond_signal((input_events.cv));
+			}
+			pthread_mutex_unlock((input_events.mutex));
+	}
+	return NULL;
+}
+
+static pthread_t input_polling_th, motor_driver_th, input_event_dispatcher_th, light_driver_th;
+
+int elevator_model_init( FILE * log) {
+	log = NULL;
+	while (!elev_init()) {
+	        printf("Unable to initialize elevator hardware!\n");
+	}
+	int rc = pthread_create(&input_polling_th, NULL, input_polling_thread, NULL);
+	if (rc){
+		perror("pthread_create in elevator_motor_init");
+		exit(-1);
+	}
+	rc = pthread_create(&motor_driver_th, NULL, motor_driver_thread, NULL);
+	if (rc){
+		perror("pthread_create");
+		exit(-1);
+	}
+	rc = pthread_create(&input_event_dispatcher_th, NULL, input_event_dispatcher_thread, NULL);
+		if (rc){
+		perror("pthread_create");
+		exit(-1);
+	}
+	rc = pthread_create(&light_driver_th, NULL, light_driver_thread, NULL);
+			if (rc){
+			perror("pthread_create");
+			exit(-1);
+	}
+	return rc;
+}
+//int main(void) {
+//	return 0;
+//}
+
 

@@ -10,25 +10,42 @@
 
 #ifndef ELEVATOR_MODEL_DATA_STRUCTURE_H_
 #define ELEVATOR_MODEL_DATA_STRUCTURE_H_
-typedef struct input_status_st input_status_t;
-/** below is the structure of light_status_t**/
-//{
-// /*int floor_button_lights[N_FLOORS][3];*/
-//		/*up, 	down,	cmd*/
-//	{
-//	/*0*/	{0,	-1,	0},
-//	/*1*/	{0,	0,	0},
-//	/*2*/	{0,	0,	0},
-//	/*3*/	{-1,	0,	0}
-//	},
-//	.floor_indicator_light = 0,
-//	.stop_light = 0,
-//	.door_open_light = 0
-//};
-typedef struct light_status_st light_status_t;
+#include <stdio.h>
+#include <pthread.h>
+#include "elev.h"
+#define MOTOR_EM_STOP_CMD 0xffff
+typedef struct event_st {
+	pthread_cond_t  *cv;
+	pthread_mutex_t *mutex;
+} event_t;
+extern event_t * const input_event_ptr; /* Wrapper of Synchronization primitives */
+typedef struct input_status_st{
+	// button table to represent the current button status
+	//each floor has 3 types: UP DOWN CMD
+	// -1 stands for not existing
+	int Button_external[N_FLOORS][3];
+	int floor_sensor;
+	int stop_button;
+	int obst_button;
+} input_status_t;
+typedef struct light_status_st{
+	// button table to represent the current button status
+	//each floor has 3 types: UP DOWN CMD
+	// -1 stands for not existing
+	int floor_button_lights[N_FLOORS][3];
+	int floor_indicator_light;/* 0 - 3 */
+	int stop_light;
+	int door_open_light;
+} light_status_t;
+
 extern input_status_t get_input_status(void);
+extern input_status_t get_input_status_unsafe(void);/* not thread safe */
 extern light_status_t get_light_status(void);
 extern void set_light_status(const light_status_t status);
 extern int get_desired_floor(void);
+/* \para floor: 0 ~ NFLOORS-1, normal desired floor; MOTOR_EM_STOP_CMD, emergency stop CMD */
 extern void set_desired_floor(const int floor);
+extern int get_motor_moving_vector(void);
+/* \para log for redirecting log */
+extern int elevator_model_init(FILE* log);
 #endif /* ELEVATOR_MODEL_DATA_STRUCTURE_H_ */
