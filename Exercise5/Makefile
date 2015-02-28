@@ -5,7 +5,7 @@ CFLAGS = -g -Wall -O2 -I . -MMD -std=c99
 LDFLAGS = -lpthread -lcomedi -g -lm
 
 # list of sources
-ELEVSRC = elev.c io.c  button_sensor_update_thread.c
+ELEVSRC = elev.c io.c  button_sensor_update_thread.c elevator_model_data_structure.c
 
 # program executable file name.
 TARGET = heis

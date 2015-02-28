@@ -7,59 +7,59 @@
 #include <unistd.h>
 #include <assert.h>
 #include <string.h>
-struct Input_Status_t {
-pthread_mutex_t lock ;
-// button table to represent the current button status
-//each floor has 3 types: UP DOWN CMD
-// -1 stands for not existing
-int Button_external[N_FLOORS][3];
-int floor_sensor;
-int stop_button;
-int obst_button;
-} Input_Status
-=
-{
-	.lock = PTHREAD_MUTEX_INITIALIZER,
-		/*up, 	down,	cmd*/
-	{ 	
-	/*0*/	{0,	-1,	0},
-	/*1*/	{0,	0,	0},
-	/*2*/	{0,	0,	0},
-	/*3*/	{-1,	0,	0}
-	},
-	.floor_sensor = 0,
-	.stop_button = 0,
-	.obst_button = 0
-};
-
-struct {
-pthread_mutex_t lock;
-// button table to represent the current button status
-//each floor has 3 types: UP DOWN CMD
-// -1 stands for not existing
-int Button_lights[N_FLOORS][3];
-int floor_light;/* 0 - 3 */
-int stop_light;
-int door_open_light;
-;
-} Light_Status
-=
-{
-	.lock = PTHREAD_MUTEX_INITIALIZER,
-		/*up, 	down,	cmd*/
-	{ 	
-	/*0*/	{0,	-1,	0},
-	/*1*/	{0,	0,	0},
-	/*2*/	{0,	0,	0},
-	/*3*/	{-1,	0,	0}
-	},
-	.floor_light = 0,
-	.stop_light = 0,
-	.door_open_light = 0
-};
-pthread_mutex_t desired_floor_lock = PTHREAD_MUTEX_INITIALIZER;
-int DesiredFloor = 0;
-void *ButtonGetThread(){
+//struct Input_Status_t {
+//pthread_mutex_t lock ;
+//// button table to represent the current button status
+////each floor has 3 types: UP DOWN CMD
+//// -1 stands for not existing
+//int Button_external[N_FLOORS][3];
+//int floor_sensor;
+//int stop_button;
+//int obst_button;
+//} Input_Status
+//=
+//{
+//	.lock = PTHREAD_MUTEX_INITIALIZER,
+//		/*up, 	down,	cmd*/
+//	{
+//	/*0*/	{0,	-1,	0},
+//	/*1*/	{0,	0,	0},
+//	/*2*/	{0,	0,	0},
+//	/*3*/	{-1,	0,	0}
+//	},
+//	.floor_sensor = 0,
+//	.stop_button = 0,
+//	.obst_button = 0
+//};
+//
+//struct {
+//pthread_mutex_t lock;
+//// button table to represent the current button status
+////each floor has 3 types: UP DOWN CMD
+//// -1 stands for not existing
+//int floor_button_lights[N_FLOORS][3];
+//int floor_indicator_light;/* 0 - 3 */
+//int stop_light;
+//int door_open_light;
+//;
+//} light_status
+//=
+//{
+//	.lock = PTHREAD_MUTEX_INITIALIZER,
+//		/*up, 	down,	cmd*/
+//	{
+//	/*0*/	{0,	-1,	0},
+//	/*1*/	{0,	0,	0},
+//	/*2*/	{0,	0,	0},
+//	/*3*/	{-1,	0,	0}
+//	},
+//	.floor_indicator_light = 0,
+//	.stop_light = 0,
+//	.door_open_light = 0
+//};
+//pthread_mutex_t desired_floor_lock = PTHREAD_MUTEX_INITIALIZER;
+//int desired_floor = 0;
+void *input_polling_thread(){
 	while(1){
 		pthread_mutex_lock(&(Input_Status.lock));
 		puts("reading buttons: outside:\tFLOOR \tUP \tDONW \tCMD ");
@@ -108,18 +108,18 @@ void *InputEventParser(void * data){
 	}
 	return NULL;
 }
-void * LightDriverThread(){
+void * light_controller_thread(){
 	while(1){
 		for( int i = 0; i < N_FLOORS; i++){
 			for( int j = 0; j < 3; j++){
-				if(Light_Status.Button_lights[i][j] != -1) 
-				elev_set_button_lamp(j, i, Light_Status.Button_lights[i][j]);	
+				if(light_status.floor_button_lights[i][j] != -1)
+				elev_set_button_lamp(j, i, light_status.floor_button_lights[i][j]);
 			}
 		}
 		
-		elev_set_floor_indicator(Light_Status.floor_light);
-		elev_set_stop_lamp(Light_Status.stop_light);
-		elev_set_door_open_lamp(Light_Status.door_open_light);
+		elev_set_floor_indicator(light_status.floor_indicator_light);
+		elev_set_stop_lamp(light_status.stop_light);
+		elev_set_door_open_lamp(light_status.door_open_light);
 	}
 	usleep(10000);
 	return 0;
@@ -134,14 +134,14 @@ int get_motor_moving_vector(void){
 }
 #define MOTOR_EM_STOP_CMD 0xffff
 /* input: DesiredFloor, desired_floor_lock */
-void * goto_desired_floor_thread()
+void * motor_controller_thread(void * data_motor_controller_ptr)
 {
 	int read_desired_floor;
 	int last_stable_floor = 1; /* init moving downwards until reach a stable */
 	while(1)
 	{	
 		pthread_mutex_lock(&desired_floor_lock);
-		read_desired_floor = DesiredFloor;
+		read_desired_floor = desired_floor;
 		pthread_mutex_unlock(&desired_floor_lock);
 		if(
 			(read_desired_floor >= 0)&&(read_desired_floor <= N_FLOORS-1)
@@ -177,7 +177,7 @@ void * keyboard_read_thread(){
 		scanf( "%d", &read);
 		printf( "\nDesired floor is: %d",read);
 		pthread_mutex_lock(&desired_floor_lock);
-		DesiredFloor = read;
+		desired_floor = read;
 		pthread_mutex_unlock(&desired_floor_lock);
 	}
 	return NULL;
@@ -187,7 +187,7 @@ int IsRequestAccepted(elev_button_type_t type, int floor){
 	if(get_motor_moving_vector())
 		return 0;
 	pthread_mutex_lock(&desired_floor_lock);
-	DesiredFloor = floor;
+	desired_floor = floor;
 	pthread_mutex_unlock(&desired_floor_lock);
 	return 1;
 }
@@ -197,17 +197,17 @@ int main(){
         printf("Unable to initialize elevator hardware!\n");
    	}
 	pthread_t button_get_th, light_drive_th, goto_desire_th, keyboard_read_th;
-	int rc = pthread_create(&button_get_th, NULL, ButtonGetThread, NULL);
+	int rc = pthread_create(&button_get_th, NULL, input_polling_thread, NULL);
 	if (rc){
 		perror("pthread_create");
 		exit(-1);
 	}
-	rc = pthread_create(&light_drive_th, NULL, LightDriverThread, NULL);
+	rc = pthread_create(&light_drive_th, NULL, light_controller_thread, NULL);
 	if (rc){
 		perror("pthread_create");
 		exit(-1);
 	}
-	rc = pthread_create(&goto_desire_th, NULL, goto_desired_floor_thread, NULL);
+	rc = pthread_create(&goto_desire_th, NULL, motor_controller_thread, NULL);
 	if (rc){
 		perror("pthread_create");
 		exit(-1);
@@ -230,27 +230,28 @@ int main(){
 			/*2*/	{0,	0,	0},
 			/*3*/	{-1,	0,	0}
 		};
-	int last_floor_sensor = 0;
-	int last_obst_button = 0;
+	//int last_floor_sensor = 0;
+	//int last_obst_button = 0;
 	int last_stop_button = 0;
 
 	while(1){
 
 		pthread_mutex_lock(&(Input_Status.lock));
 			pthread_cond_wait(&input_changed_cv, &(Input_Status.lock));
-			memcpy(last_Button_external, Input_Status.Button_external, N_FLOORS*3*sizeof(int) );
-			last_floor_sensor = Input_Status.floor_sensor;
-			last_stop_button = Input_Status.stop_button;
-			last_obst_button = Input_Status.obst_button;
-		pthread_mutex_unlock(&(Input_Status.lock));
+
+			//last_floor_sensor = Input_Status.floor_sensor;
+			//last_obst_button = Input_Status.obst_button;
+
 
 		if(Input_Status.floor_sensor != -1)
-			Light_Status.floor_light = Input_Status.floor_sensor;
+			light_status.floor_indicator_light = Input_Status.floor_sensor;
 		/* making it triggered in rising edge */
-		Light_Status.stop_light = ((Input_Status.stop_button - last_stop_button) == 1)? (!Light_Status.stop_light) : Light_Status.stop_light;
-		if(Light_Status.stop_light||Input_Status.obst_button){
+		light_status.stop_light = ((Input_Status.stop_button - last_stop_button) == 1)? (!light_status.stop_light) : light_status.stop_light;
+		last_stop_button = Input_Status.stop_button;
+		/**************************************/
+		if(light_status.stop_light||Input_Status.obst_button){
 			pthread_mutex_lock(&desired_floor_lock);
-			DesiredFloor = MOTOR_EM_STOP_CMD;
+			desired_floor = MOTOR_EM_STOP_CMD;
 			pthread_mutex_unlock(&desired_floor_lock);
 		}
 		/******************************************************************************/
@@ -258,14 +259,15 @@ int main(){
 
 		for( int i = 0; i < N_FLOORS; i++){
 			for( int j = 0; j < 3; j++){
-				if(Light_Status.Button_lights[i][j] != -1){
-					Light_Status.Button_lights[i][j]
-					= (Input_Status.Button_external[i][j])? !IsRequestAccepted(j, i) : Light_Status.Button_lights[i][j];
+				if(light_status.floor_button_lights[i][j] != -1){
+					light_status.floor_button_lights[i][j]
+					= (Input_Status.Button_external[i][j])? IsRequestAccepted(j, i)&&get_motor_moving_vector() : light_status.floor_button_lights[i][j];
 
 				}
 			}
 		}
-
+		memcpy(last_Button_external, Input_Status.Button_external, N_FLOORS*3*sizeof(int) );
+		pthread_mutex_unlock(&(Input_Status.lock));
 	}
 		
 	return 0;
