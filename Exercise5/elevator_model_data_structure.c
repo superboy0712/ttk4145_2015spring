@@ -163,7 +163,7 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 	int last_stable_floor = 1; /* init moving downwards until reach a stable */
 	while(1)
 	{
-		read_desired_floor = get_desired_floor();
+		read_desired_floor = desired_floor;
 		//read_desired_floor = desired_floor;
 		if(
 			(read_desired_floor >= 0)&&(read_desired_floor <= N_FLOORS-1)
@@ -197,7 +197,7 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 			elev_set_motor_direction(0);
 			motor_moving_vector = 0;
 		}
-		usleep(25000);
+		usleep(100000);
 	}
 }
 
