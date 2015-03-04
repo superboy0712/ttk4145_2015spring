@@ -19,6 +19,7 @@ typedef struct event_st {
 	pthread_mutex_t *mutex;
 } event_t;
 extern event_t * const input_event_ptr; /* Wrapper of Synchronization primitives */
+extern event_t * const floor_reached_event_ptr;/* Wrapper of floor event */
 typedef struct input_status_st{
 	// button table to represent the current button status
 	//each floor has 3 types: UP DOWN CMD
@@ -45,6 +46,7 @@ extern void set_light_status(const light_status_t status);
 extern int get_desired_floor(void);
 /* \para floor: 0 ~ NFLOORS-1, normal desired floor; MOTOR_EM_STOP_CMD, emergency stop CMD */
 extern void set_desired_floor(const int floor);
+extern void set_desired_floor_unsafe(const int floor);
 extern int get_motor_moving_vector(void);
 /* \para log for redirecting log */
 extern int elevator_model_init(FILE* log);

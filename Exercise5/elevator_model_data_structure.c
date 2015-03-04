@@ -86,7 +86,15 @@ void set_light_status(const light_status_t status){
  *  floor controlling related
  */
 static pthread_mutex_t desired_floor_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t desired_floor_reached_cv = PTHREAD_COND_INITIALIZER;
 static int desired_floor = 0;
+static event_t floor_reached_event
+={
+		.cv = &desired_floor_reached_cv,
+		.mutex = &desired_floor_lock
+};
+
+event_t * const floor_reached_event_ptr = &input_events;
 int get_desired_floor(void){
 	pthread_mutex_lock(&desired_floor_lock);
 	int ret = desired_floor;
@@ -100,6 +108,9 @@ void set_desired_floor(const int floor){
 		desired_floor = floor;
 		pthread_mutex_unlock(&desired_floor_lock);
 	}
+}
+void set_desired_floor_unsafe(const int floor){
+	desired_floor = floor;
 }
 void *input_polling_thread(void * data){
 	data = NULL;
@@ -165,9 +176,12 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 				last_stable_floor = sensor;
 				motor_moving_vector = read_desired_floor - sensor;
 				elev_set_motor_direction(motor_moving_vector);
-//				if(motor_moving_vector == 0){
-//					/* reach the desired floor, notify the dispatcher */
-//				}
+				if(motor_moving_vector == 0){
+					/* reach the desired floor, notify the dispatcher */
+					pthread_mutex_lock((floor_reached_event.mutex));
+						pthread_cond_broadcast((floor_reached_event.cv));
+					pthread_mutex_unlock((floor_reached_event.mutex));
+				}
 			} else {
 				/** get to nearest fixed floor downwards, not somewhere in between  **/
 				elev_set_motor_direction(read_desired_floor - last_stable_floor);
@@ -181,6 +195,7 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 
 		if (light_status.stop_light||input_status.obst_button||light_status.door_open_light){
 			elev_set_motor_direction(0);
+			motor_moving_vector = 0;
 		}
 		usleep(25000);
 	}
@@ -221,8 +236,10 @@ void *input_event_dispatcher_thread(void * data){
 		last_input_status = get_input_status();
 		usleep(10000);
 			pthread_mutex_lock((input_events.mutex));
-			if(memcmp(&input_status, &last_input_status, sizeof(input_status_t))){
-				pthread_cond_signal((input_events.cv));
+			last_input_status.floor_sensor = input_status.floor_sensor;/* exclude sensor light */
+			/* issue only rising edge triggered event */
+			if(memcmp(&input_status, &last_input_status, sizeof(input_status_t)) > 0){
+				pthread_cond_broadcast((input_events.cv));
 			}
 			pthread_mutex_unlock((input_events.mutex));
 	}
