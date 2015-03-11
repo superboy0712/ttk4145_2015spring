@@ -5,6 +5,8 @@
 #include <string.h>
 #include "elevator_model_data_structure.h"
 #include "elev.h"
+int push_task(const int floor);
+
 void * keyboard_read_thread(){
 //	FILE * keyin = fopen("./keyboard_in", "r" );
 //	FILE * keyout = fopen("./keyboard_out", "w");
@@ -13,14 +15,15 @@ void * keyboard_read_thread(){
 		printf(  "\nInput floor: ");
 		scanf( "%d", &read);
 		printf( "\nDesired floor is: %d",read);
-		set_desired_floor(read);
+		//set_desired_floor(read);
+		push_task(read);
 		//sleep(1);
 	}
 	return NULL;
 }
 #define  EMPTY_TASK 0XFFFF
-static int task_queue[N_FLOORS] = {EMPTY_TASK,EMPTY_TASK,EMPTY_TASK,EMPTY_TASK};
-volatile static int task_queue_top = 0;
+int task_queue[N_FLOORS] = {EMPTY_TASK,EMPTY_TASK,EMPTY_TASK,EMPTY_TASK};
+volatile int task_queue_top = 0;
 int cmpfunc (const void * a, const void * b)
 {
    return ( *(int*)a - *(int*)b );
@@ -31,7 +34,29 @@ event_t new_task_event = {
 		.cv = &new_task_cv,
 		.mutex = &task_queue_lock
 };
+int fetch_task(void){
+	static int current_fetch_head = 0;/* either top or 0 to the sorted queue */
 
+	if(task_queue_top>=0&&task_queue_top<N_FLOORS){
+		int sensor = get_input_status_unsafe().floor_sensor;
+		if(abs(task_queue[task_queue_top]-sensor)
+				>=
+				abs(task_queue[0]-sensor)){
+			/* moving up fetch from the smallest */
+			current_fetch_head = 0;
+		} else {
+			current_fetch_head = task_queue_top;
+		}
+
+		if(task_queue_top!=0)
+			task_queue_top--;
+		int ret = task_queue[current_fetch_head];
+		task_queue[current_fetch_head] = EMPTY_TASK;
+		qsort(task_queue, N_FLOORS, sizeof(int), cmpfunc);
+		return ret;
+	}
+	return EMPTY_TASK;
+}
 int push_task(const int floor){
 	if(floor<0 || floor>=N_FLOORS)
 		return 0;
@@ -47,11 +72,12 @@ int push_task(const int floor){
 		puts("error in task_queue_top");
 		return 0;
 	}
-
-		task_queue[task_queue_top] = floor;
-		qsort(task_queue, N_FLOORS, sizeof(int), cmpfunc);
-		if(task_queue_top != N_FLOORS-1)
+	if(task_queue_top != N_FLOORS-1)
 			task_queue_top ++;
+
+	task_queue[task_queue_top] = floor;
+	qsort(task_queue, N_FLOORS, sizeof(int), cmpfunc);
+
 		//pthread_cond_signal(new_task_event.cv);
 	//pthread_mutex_unlock(new_task_event.mutex);
 
@@ -85,29 +111,6 @@ void * stop_button_controller_thread(void * data){
 
 	return NULL;
 }
-int fetch_task(void){
-	static int current_fetch_head = 0;/* either top or 0 to the sorted queue */
-
-	if(task_queue_top>=0&&task_queue_top<N_FLOORS){
-		int sensor = get_input_status().floor_sensor;
-		if(abs(task_queue[task_queue_top]-sensor)
-				>=
-				abs(task_queue[0]-sensor)){
-			/* moving up fetch from the smallest */
-			current_fetch_head = 0;
-		} else {
-			current_fetch_head = task_queue_top;
-		}
-
-		if(task_queue_top!=0)
-			task_queue_top--;
-		int ret = task_queue[current_fetch_head];
-		task_queue[current_fetch_head] = EMPTY_TASK;
-		qsort(task_queue, N_FLOORS, sizeof(int), cmpfunc);
-		return ret;
-	}
-	return EMPTY_TASK;
-}
 void go_to_desired_floor(int floor){
 	while(floor!= get_desired_floor()){
 		pthread_mutex_lock(floor_reached_event_ptr->mutex);
@@ -122,10 +125,10 @@ void open_wait_close(void){
 	set_light_status(light);
 	sleep(2);
 	input_status_t input = get_input_status();
-	while(input.obst_button){
-		input = get_input_status();
-		sleep(1);
-	}
+//	while(input.obst_button){
+//		sleep(1);
+//		input = get_input_status();
+//	}
 	light = get_light_status();
 	light.door_open_light = 0;
 	set_light_status(light);

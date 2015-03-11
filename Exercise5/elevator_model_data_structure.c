@@ -112,6 +112,8 @@ void set_desired_floor(const int floor){
 void set_desired_floor_unsafe(const int floor){
 	desired_floor = floor;
 }
+int task_queue[N_FLOORS];
+int task_queue_top;
 void *input_polling_thread(void * data){
 	data = NULL;
 	while(1){
@@ -130,8 +132,12 @@ void *input_polling_thread(void * data){
 			down,
 			cmd);
 		}
-
-
+		printf("task queue: ");
+		for(int i = 0; i < N_FLOORS; i++ ){
+			printf("%d ",task_queue[i]);
+		}
+		printf(" top: %d", task_queue_top);
+		puts("");
 		input_status.floor_sensor = elev_get_floor_sensor_signal();
 		printf("Current sensor value is:%d\n",input_status.floor_sensor);
 		input_status.obst_button = elev_get_obstruction_signal();
@@ -193,10 +199,15 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 			}
 		}
 
-		if (light_status.stop_light||input_status.obst_button||light_status.door_open_light){
-			elev_set_motor_direction(0);
-			motor_moving_vector = 0;
-		}
+//		if (light_status.stop_light||input_status.obst_button||light_status.door_open_light){
+//			int sensor = elev_get_floor_sensor_signal();
+//			if(sensor != -1){
+//				elev_set_motor_direction(0);
+//				motor_moving_vector = 0;
+//			}else{
+//
+//			}
+//		}
 		usleep(100000);
 	}
 }
