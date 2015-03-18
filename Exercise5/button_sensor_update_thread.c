@@ -57,6 +57,12 @@ int fetch_task(void){
 	}
 	return EMPTY_TASK;
 }
+int fetch_task_max(void){
+	return task_queue[task_queue_top];
+}
+int fetch_task_min(void){
+	return task_queue[0];
+}
 int push_task(const int floor){
 	if(floor<0 || floor>=N_FLOORS)
 		return 0;
@@ -65,7 +71,7 @@ int push_task(const int floor){
 		if(floor == task_queue[i]){
 			//pthread_cond_signal(new_task_event.cv);
 			//pthread_mutex_unlock(new_task_event.mutex);
-			return 0;/*rejected*/
+			return 0; /*rejected*/
 		}
 	}
 	if(task_queue_top<0 || task_queue_top>= N_FLOORS){
@@ -103,7 +109,7 @@ void * stop_button_controller_thread(void * data){
 			write.stop_light = !write.stop_light;
 			set_light_status(write);
 			if(write.stop_light){
-				set_desired_floor(MOTOR_EM_STOP_CMD);
+				//set_desired_floor(MOTOR_EM_STOP_CMD);
 			}
 		}
 		pthread_mutex_unlock(input_event_ptr->mutex);
@@ -125,11 +131,11 @@ void open_wait_close(void){
 	light.door_open_light = 1;
 	set_light_status(light);
 	sleep(2);
-//	input_status_t input = get_input_status();
-//	while(input.obst_button){
-//		sleep(1);
-//		input = get_input_status();
-//	}
+	input_status_t input = get_input_status();
+	while(input.obst_button){
+		sleep(1);
+		input = get_input_status();
+	}
 	light = get_light_status();
 	light.door_open_light = 0;
 	set_light_status(light);
@@ -145,22 +151,28 @@ void *elevator_running_process(void * data){
 		printf("empty task init!\n\n");
 		while(floor == EMPTY_TASK){
 			usleep(50000);
-			//pthread_mutex_lock(new_task_event.mutex);
-			//pthread_cond_wait(new_task_event.cv, new_task_event.mutex);
 			floor = fetch_task();
 			printf("fetch task %d\n\n\n", floor);
-			//pthread_mutex_unlock(new_task_event.mutex);
 		}
 
-//		if(get_input_status().floor_sensor == floor)
-//		{
-//			open_wait_close();
-//		}
 		printf("calling go to floor, wait for reached!\n\n");
 		go_to_desired_floor(floor);
 		printf("reached floor, recieved reached signal!\n\n");
+		sleep(1); /* wait for stop stable then open */
+		/* clear the correspondent floor light */
+		light_status_t light = get_light_status();
+		light.floor_button_lights[floor][BUTTON_COMMAND] = 0;
+		if(get_motor_last_none_zero_motor_moving_vector()>0 || floor == fetch_task_max()){
+			light.floor_button_lights[floor][BUTTON_CALL_UP] = 0;
+		}else if (get_motor_last_none_zero_motor_moving_vector()>0 || floor == fetch_task_max()){
+			light.floor_button_lights[floor][BUTTON_CALL_DOWN] = 0;
+		}else {
+			light.floor_button_lights[floor][BUTTON_CALL_UP] = 0;
+			light.floor_button_lights[floor][BUTTON_CALL_DOWN] = 0;
+		}
+		set_light_status(light);
+			open_wait_close();
 
-		//open_wait_close();
 
 	}
 	return NULL;
@@ -199,7 +211,7 @@ int main(){
 			for( int button_type = 0; button_type < 3; button_type++){
 				if(light_to_write.floor_button_lights[floor][button_type] != -1){
 					light_to_write.floor_button_lights[floor][button_type]
-					= (input_read.Button_external[floor][button_type])? IsRequestAccepted(button_type, floor) : 0;//light_to_write.floor_button_lights[floor][button_type];
+					= (input_read.Button_external[floor][button_type])? IsRequestAccepted(button_type, floor) : light_to_write.floor_button_lights[floor][button_type];
 
 				}
 			}

@@ -161,64 +161,65 @@ void *input_polling_thread(void * data){
  *  signed integer - moving directions and distance left, also means busy
  */
 static int motor_moving_vector = 0;
+static int last_none_zero_motor_moving_vector = -1; /* default downwards for safety reason */
 int get_motor_moving_vector(void){
 	return motor_moving_vector;
 }
-
+int get_motor_last_none_zero_motor_moving_vector(void){
+	return last_none_zero_motor_moving_vector;
+}
 /* input: read_desired_floor */
 void * motor_driver_thread(void * data_motor_controller_ptr)
 {
 	data_motor_controller_ptr = NULL;
 	int read_desired_floor = 0;
 	int last_stable_floor = 1; /* init moving downwards until reach a stable */
-	int last_stable_floor_flag = 0;
 	while(1)
 	{
 		read_desired_floor = desired_floor;
-		//read_desired_floor = desired_floor;
-		if(
-			(read_desired_floor >= 0)&&(read_desired_floor <= N_FLOORS-1)
 
-		  )
-		{
+		if (light_status.stop_light||light_status.door_open_light||read_desired_floor==0xff){
+			//int sensor = elev_get_floor_sensor_signal();
+				//motor_moving_vector = 0;
+			elev_set_motor_direction(0);
+		} else {
+			//read_desired_floor = desired_floor;
+			if(
+				(read_desired_floor >= 0)&&(read_desired_floor <= N_FLOORS-1)
 
-			int sensor = elev_get_floor_sensor_signal();  /* last floor */
-			if(sensor != -1){
-				if(last_stable_floor_flag){
-					last_stable_floor_flag = 0;/* updated last_stable_floor only once */
+			  )
+			{
+
+				int sensor = elev_get_floor_sensor_signal();  /* last floor */
+				if(sensor != -1){
+
 					last_stable_floor = sensor;
+					motor_moving_vector = read_desired_floor - sensor;
+					if(motor_moving_vector!=0){
+						last_none_zero_motor_moving_vector =  motor_moving_vector;
+					}
+					elev_set_motor_direction(motor_moving_vector);
+					if(motor_moving_vector == 0){
+						/* reach the desired floor, notify the dispatcher */
+						pthread_mutex_lock((floor_reached_event.mutex));
+							pthread_cond_broadcast((floor_reached_event.cv));
+							printf("reached signal broadcast!\n\n\n");
+						pthread_mutex_unlock((floor_reached_event.mutex));
+					}
+				} else {
+					/** get to nearest fixed floor downwards, not somewhere in between  **/
+					elev_set_motor_direction(last_none_zero_motor_moving_vector);
+					/**
+					 * TODO add timeout detection here. if the sensor
+					 * keep -1 for longer than 10 seconds, change direction;
+					 * if still -1, then means power was down, init necessarily
+					 */
 				}
-
-				motor_moving_vector = read_desired_floor - sensor;
-				elev_set_motor_direction(motor_moving_vector);
-				if(motor_moving_vector == 0){
-					/* reach the desired floor, notify the dispatcher */
-					pthread_mutex_lock((floor_reached_event.mutex));
-						pthread_cond_broadcast((floor_reached_event.cv));
-						printf("reached signal broadcast!\n\n\n");
-					pthread_mutex_unlock((floor_reached_event.mutex));
-				}
-			} else {
-				last_stable_floor_flag = 1;
+			}else {
 				/** get to nearest fixed floor downwards, not somewhere in between  **/
-				elev_set_motor_direction(read_desired_floor - last_stable_floor);
-				/**
-				 * TODO add timeout detection here. if the sensor
-				 * keep -1 for longer than 10 seconds, change direction;
-				 * if still -1, then means power was down, init necessarily
-				 */
+				elev_set_motor_direction(0);
 			}
 		}
-
-//		if (light_status.stop_light||input_status.obst_button||light_status.door_open_light){
-//			int sensor = elev_get_floor_sensor_signal();
-//			if(sensor != -1){
-//				elev_set_motor_direction(0);
-//				motor_moving_vector = 0;
-//			}else{
-//
-//			}
-//		}
 		usleep(100000);
 	}
 }
