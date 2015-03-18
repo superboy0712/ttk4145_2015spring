@@ -47,7 +47,7 @@ int fetch_task(void){
 		} else {
 			current_fetch_head = task_queue_top;
 		}
-
+		printf("fetch head is %d\n\n",current_fetch_head);
 		if(task_queue_top!=0)
 			task_queue_top--;
 		int ret = task_queue[current_fetch_head];
@@ -86,8 +86,8 @@ int push_task(const int floor){
 
 int IsRequestAccepted(elev_button_type_t type, int floor){
 	/* when motor is free then accepted, change desired floor */
-	if(get_motor_moving_vector())
-		return 0;
+//	if(get_motor_moving_vector())
+//		return 0;
 	int ret = push_task(floor);
 	return ret;
 }
@@ -112,8 +112,9 @@ void * stop_button_controller_thread(void * data){
 	return NULL;
 }
 void go_to_desired_floor(int floor){
-	while(floor!= get_desired_floor()){
+	while(floor != get_input_status_unsafe().floor_sensor){
 		pthread_mutex_lock(floor_reached_event_ptr->mutex);
+		printf("go to desired floor %d\n\n",floor);
 		set_desired_floor_unsafe(floor);
 		pthread_cond_wait(floor_reached_event_ptr->cv, floor_reached_event_ptr->mutex);
 		pthread_mutex_unlock(floor_reached_event_ptr->mutex);
@@ -124,7 +125,7 @@ void open_wait_close(void){
 	light.door_open_light = 1;
 	set_light_status(light);
 	sleep(2);
-	input_status_t input = get_input_status();
+//	input_status_t input = get_input_status();
 //	while(input.obst_button){
 //		sleep(1);
 //		input = get_input_status();
@@ -141,11 +142,13 @@ void *elevator_running_process(void * data){
 		 *  fetch a new task
 		 */
 		int floor = EMPTY_TASK;
+		printf("empty task init!\n\n");
 		while(floor == EMPTY_TASK){
-			usleep(200000);
+			usleep(50000);
 			//pthread_mutex_lock(new_task_event.mutex);
 			//pthread_cond_wait(new_task_event.cv, new_task_event.mutex);
 			floor = fetch_task();
+			printf("fetch task %d\n\n\n", floor);
 			//pthread_mutex_unlock(new_task_event.mutex);
 		}
 
@@ -153,10 +156,11 @@ void *elevator_running_process(void * data){
 //		{
 //			open_wait_close();
 //		}
-
+		printf("calling go to floor, wait for reached!\n\n");
 		go_to_desired_floor(floor);
+		printf("reached floor, recieved reached signal!\n\n");
 
-		open_wait_close();
+		//open_wait_close();
 
 	}
 	return NULL;

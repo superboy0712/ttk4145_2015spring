@@ -86,20 +86,24 @@ void set_light_status(const light_status_t status){
  *  floor controlling related
  */
 static pthread_mutex_t desired_floor_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t floor_reached_event_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t desired_floor_reached_cv = PTHREAD_COND_INITIALIZER;
 static int desired_floor = 0;
 static event_t floor_reached_event
 ={
 		.cv = &desired_floor_reached_cv,
-		.mutex = &desired_floor_lock
+		.mutex = &floor_reached_event_lock
 };
 
-event_t * const floor_reached_event_ptr = &input_events;
+event_t * const floor_reached_event_ptr = &floor_reached_event;
 int get_desired_floor(void){
 	pthread_mutex_lock(&desired_floor_lock);
 	int ret = desired_floor;
 	pthread_mutex_unlock(&desired_floor_lock);
 	return ret;
+}
+int get_desired_floor_unsafe(void){
+	return desired_floor;
 }
 void set_desired_floor(const int floor){
 	if((floor>=0 && floor<=N_FLOORS-1) || floor==MOTOR_EM_STOP_CMD)
@@ -118,7 +122,7 @@ void *input_polling_thread(void * data){
 	data = NULL;
 	while(1){
 		pthread_mutex_lock(&input_status_lock);
-		puts("reading buttons: outside:\tFLOOR \tUP \tDONW \tCMD ");
+//		puts("reading buttons: outside:\tFLOOR \tUP \tDONW \tCMD ");
 		for(int i = 0; i < N_FLOORS; i++ ){
 
 			int up = (i==3)? (-1):elev_get_button_signal(BUTTON_CALL_UP,i);
@@ -127,25 +131,25 @@ void *input_polling_thread(void * data){
 			input_status.Button_external[i][BUTTON_CALL_UP] = up;
 			input_status.Button_external[i][BUTTON_CALL_DOWN] = down;
 			input_status.Button_external[i][BUTTON_COMMAND] = cmd;
-			printf("\t\t\t\t%d \t%d \t%d \t%d\n", i,
-			up,
-			down,
-			cmd);
+//			printf("\t\t\t\t%d \t%d \t%d \t%d\n", i,
+//			up,
+//			down,
+//			cmd);
 		}
 		printf("task queue: ");
 		for(int i = 0; i < N_FLOORS; i++ ){
 			printf("%d ",task_queue[i]);
 		}
-		printf(" top: %d", task_queue_top);
+//		printf(" top: %d", task_queue_top);
 		puts("");
 		input_status.floor_sensor = elev_get_floor_sensor_signal();
-		printf("Current sensor value is:%d\n",input_status.floor_sensor);
+//		printf("Current sensor value is:%d\n",input_status.floor_sensor);
 		input_status.obst_button = elev_get_obstruction_signal();
-		printf("Current obst value is:%d\n",input_status.obst_button);
+//		printf("Current obst value is:%d\n",input_status.obst_button);
 		input_status.stop_button = elev_get_stop_signal();
-		printf("Current stop value is:%d\n",input_status.stop_button);
+//		printf("Current stop value is:%d\n",input_status.stop_button);
 
-		printf("Current floor value is:%d\n",desired_floor);
+//		printf("Current floor value is:%d\n",desired_floor);
 
 		pthread_mutex_unlock(&input_status_lock);
 		usleep(50000);
@@ -167,6 +171,7 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 	data_motor_controller_ptr = NULL;
 	int read_desired_floor = 0;
 	int last_stable_floor = 1; /* init moving downwards until reach a stable */
+	int last_stable_floor_flag = 0;
 	while(1)
 	{
 		read_desired_floor = desired_floor;
@@ -179,16 +184,22 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 
 			int sensor = elev_get_floor_sensor_signal();  /* last floor */
 			if(sensor != -1){
-				last_stable_floor = sensor;
+				if(last_stable_floor_flag){
+					last_stable_floor_flag = 0;/* updated last_stable_floor only once */
+					last_stable_floor = sensor;
+				}
+
 				motor_moving_vector = read_desired_floor - sensor;
 				elev_set_motor_direction(motor_moving_vector);
 				if(motor_moving_vector == 0){
 					/* reach the desired floor, notify the dispatcher */
 					pthread_mutex_lock((floor_reached_event.mutex));
 						pthread_cond_broadcast((floor_reached_event.cv));
+						printf("reached signal broadcast!\n\n\n");
 					pthread_mutex_unlock((floor_reached_event.mutex));
 				}
 			} else {
+				last_stable_floor_flag = 1;
 				/** get to nearest fixed floor downwards, not somewhere in between  **/
 				elev_set_motor_direction(read_desired_floor - last_stable_floor);
 				/**

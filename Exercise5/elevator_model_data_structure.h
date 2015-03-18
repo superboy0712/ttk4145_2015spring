@@ -44,6 +44,7 @@ extern input_status_t get_input_status_unsafe(void);/* not thread safe */
 extern light_status_t get_light_status(void);
 extern void set_light_status(const light_status_t status);
 extern int get_desired_floor(void);
+extern int get_desired_floor_unsafe(void);
 /* \para floor: 0 ~ NFLOORS-1, normal desired floor; MOTOR_EM_STOP_CMD, emergency stop CMD */
 extern void set_desired_floor(const int floor);
 extern void set_desired_floor_unsafe(const int floor);
