@@ -205,14 +205,13 @@ int main(){
 
 		input_read = get_input_status_unsafe();
 
- //TODO BELOW IS BUGGY CODE. MAKE FLOOR TO SET TO 3.
+ //TODO
 		light_to_write = get_light_status();
 		for( int floor = 0; floor < N_FLOORS; floor++){
 			for( int button_type = 0; button_type < 3; button_type++){
-				if(light_to_write.floor_button_lights[floor][button_type] != -1){
+				if(input_read.Button_external[floor][button_type] == 1){/* rising edge */
 					light_to_write.floor_button_lights[floor][button_type]
-					= (input_read.Button_external[floor][button_type])? IsRequestAccepted(button_type, floor) : light_to_write.floor_button_lights[floor][button_type];
-
+					= (IsRequestAccepted(button_type, floor))? 1 : light_to_write.floor_button_lights[floor][button_type];
 				}
 			}
 		}

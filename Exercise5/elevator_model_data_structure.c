@@ -215,9 +215,6 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 					 * if still -1, then means power was down, init necessarily
 					 */
 				}
-			}else {
-				/** get to nearest fixed floor downwards, not somewhere in between  **/
-				elev_set_motor_direction(0);
 			}
 		}
 		usleep(100000);
