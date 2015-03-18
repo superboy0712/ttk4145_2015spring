@@ -38,10 +38,9 @@ int fetch_task(void){
 	static int current_fetch_head = 0;/* either top or 0 to the sorted queue */
 
 	if(task_queue_top>=0&&task_queue_top<N_FLOORS){
-		int sensor = get_input_status_unsafe().floor_sensor;
-		if(abs(task_queue[task_queue_top]-sensor)
+		if(abs(task_queue[task_queue_top]-get_last_stable_floor()-get_motor_moving_vector())
 				>=
-				abs(task_queue[0]-sensor)){
+				abs(task_queue[0]-get_last_stable_floor()-get_motor_moving_vector())){
 			/* moving up fetch from the smallest */
 			current_fetch_head = 0;
 		} else {

@@ -50,8 +50,9 @@ extern int get_desired_floor_unsafe(void);
 /* \para floor: 0 ~ NFLOORS-1, normal desired floor; MOTOR_EM_STOP_CMD, emergency stop CMD */
 extern void set_desired_floor(const int floor);
 extern void set_desired_floor_unsafe(const int floor);
-extern int get_motor_moving_vector(void);
-extern int get_motor_last_none_zero_motor_moving_vector(void);
+extern int get_motor_moving_vector(void);/* indicate real-time motor running status and distance left */
+extern int get_motor_last_none_zero_motor_moving_vector(void);/* indicate last none zero direction */
+extern int get_last_stable_floor(void); /* last stable floor number, not somewhere in between */
 /* \para log for redirecting log */
 extern int elevator_model_init(FILE* log);
 #endif /* ELEVATOR_MODEL_DATA_STRUCTURE_H_ */

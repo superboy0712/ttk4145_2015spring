@@ -168,12 +168,16 @@ int get_motor_moving_vector(void){
 int get_motor_last_none_zero_motor_moving_vector(void){
 	return last_none_zero_motor_moving_vector;
 }
+static int last_stable_floor = 1; /* init moving downwards until reach a stable */
+int get_last_stable_floor(void){
+	return last_stable_floor;
+}
 /* input: read_desired_floor */
 void * motor_driver_thread(void * data_motor_controller_ptr)
 {
 	data_motor_controller_ptr = NULL;
 	int read_desired_floor = 0;
-	int last_stable_floor = 1; /* init moving downwards until reach a stable */
+
 	while(1)
 	{
 		read_desired_floor = desired_floor;
