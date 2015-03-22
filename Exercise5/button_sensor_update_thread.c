@@ -37,6 +37,7 @@ event_t task_queue_NOT_empty_event = {
 		.cv = &task_queue_empty_event_cv,
 		.mutex = &task_queue_lock
 };
+pthread_t task_queue_NOT_empty_signal_broadcasting_th;
 void * task_queue_NOT_empty_signal_broadcasting_thread(void * data){
 	data = NULL;
 	while(1){
@@ -59,9 +60,8 @@ int cmpfunc (const void * a, const void * b)
 
 static int current_fetch_head = 0;/* either top or 0 to the sorted queue */
 int fetch_task(void){
-
-
 	if(task_queue_top>=0&&task_queue_top<N_FLOORS){
+		pthread_mutex_lock(&task_queue_lock);
 		if(abs(task_queue[task_queue_top]-get_last_stable_floor()-get_motor_moving_vector())
 				>=
 				abs(task_queue[0]-get_last_stable_floor()-get_motor_moving_vector())){
@@ -72,6 +72,7 @@ int fetch_task(void){
 		}
 		printf("fetch head is %d\n\n",current_fetch_head);
 		int ret = task_queue[current_fetch_head];
+		pthread_mutex_unlock(&task_queue_lock);
 		return ret;
 	}
 	return EMPTY_TASK;
@@ -143,29 +144,47 @@ void * stop_button_controller_thread(void * data){
 
 	return NULL;
 }
-struct timeval;
 void cage_move_handler(void){
 	struct timespec timeToWait;
 	struct timeval now;
 	int rc;
 	int floor = fetch_task();
-	while(floor != get_input_status_unsafe().floor_sensor){
+	while(1){
 		/* */
+
 		if(floor == EMPTY_TASK){
 			puts("fetch empty task in cage_move_handler, that shouln't happen!");
 			return;
 		}
 		gettimeofday(&now,NULL);
 		timeToWait.tv_sec = now.tv_sec+0;
-		timeToWait.tv_nsec = (now.tv_usec+1000UL*100)*1000UL;
+		timeToWait.tv_nsec = (now.tv_usec+1000UL*50)*1000UL;
 		pthread_mutex_lock(floor_reached_event_ptr->mutex);
 		printf("go to desired floor %d\n\n",floor);
 		set_desired_floor_unsafe(floor);
 		rc = pthread_cond_timedwait(floor_reached_event_ptr->cv, floor_reached_event_ptr->mutex, &timeToWait );
+		floor = fetch_task();
 		if(rc == 0){
+			pthread_mutex_unlock(floor_reached_event_ptr->mutex);
 			printf("reached event caught by cage_move_handler.\n");
 			/* TODO implement pop task , separate fetch/read and pop completed one */
-			pthread_mutex_unlock(floor_reached_event_ptr->mutex);
+					int pop_floor = pop_task();
+					if(pop_floor != floor){
+						puts("pop the wrong task! shouldn't happen!");
+					}
+					/* clear the correspondent floor light */
+					light_status_t light = get_light_status();
+					light.floor_button_lights[floor][BUTTON_COMMAND] = 0;
+					if(get_motor_last_none_zero_motor_moving_vector()>0 || floor == fetch_task_max()){
+						light.floor_button_lights[floor][BUTTON_CALL_UP] = 0;
+					}else if (get_motor_last_none_zero_motor_moving_vector()>0 || floor == fetch_task_max()){
+						light.floor_button_lights[floor][BUTTON_CALL_DOWN] = 0;
+					}else {
+						light.floor_button_lights[floor][BUTTON_CALL_UP] = 0;
+						light.floor_button_lights[floor][BUTTON_CALL_DOWN] = 0;
+					}
+					set_light_status(light);
+
 			return;
 		}
 		else if (rc == ETIMEDOUT){
@@ -174,9 +193,10 @@ void cage_move_handler(void){
 		else{
 			perror("cage_move_handler");
 		}
-		pthread_mutex_unlock(floor_reached_event_ptr->mutex);
 		/* check if new arrival tasks that may precede current task */
-		floor = fetch_task();
+		//floor = fetch_task();
+		pthread_mutex_unlock(floor_reached_event_ptr->mutex);
+
 	}
 }
 void open_wait_close(void){
@@ -214,19 +234,8 @@ void *elevator_running_process(void * data){
 		cage_move_handler();
 		printf("reached floor, recieved reached signal!\n\n");
 		sleep(1); /* wait for stop stable then open */
-		/* clear the correspondent floor light */
-		light_status_t light = get_light_status();
-		light.floor_button_lights[floor][BUTTON_COMMAND] = 0;
-		if(get_motor_last_none_zero_motor_moving_vector()>0 || floor == fetch_task_max()){
-			light.floor_button_lights[floor][BUTTON_CALL_UP] = 0;
-		}else if (get_motor_last_none_zero_motor_moving_vector()>0 || floor == fetch_task_max()){
-			light.floor_button_lights[floor][BUTTON_CALL_DOWN] = 0;
-		}else {
-			light.floor_button_lights[floor][BUTTON_CALL_UP] = 0;
-			light.floor_button_lights[floor][BUTTON_CALL_DOWN] = 0;
-		}
-		set_light_status(light);
-			open_wait_close();
+
+		open_wait_close();
 
 
 	}
@@ -250,7 +259,11 @@ int main(){
 		perror("pthread_create");
 		exit(-1);
 	}
-
+	rc = pthread_create(&task_queue_NOT_empty_signal_broadcasting_th, NULL, task_queue_NOT_empty_signal_broadcasting_thread, NULL);
+	if (rc){
+		perror("pthread_create");
+		exit(-1);
+	}
 	input_status_t input_read;
 	light_status_t light_to_write;
 	while(1){
