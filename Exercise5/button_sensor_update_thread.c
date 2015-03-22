@@ -6,6 +6,7 @@
 #include "elevator_model_data_structure.h"
 #include "elev.h"
 #include <time.h>
+#include <sys/time.h>
 #include <errno.h>
 int push_task(const int floor);
 
@@ -25,11 +26,11 @@ void * keyboard_read_thread(){
 }
 #define  EMPTY_TASK 0XFFFF
 const int empty_task_queue[N_FLOORS] = {EMPTY_TASK,EMPTY_TASK,EMPTY_TASK,EMPTY_TASK};
+int task_queue[N_FLOORS] = {EMPTY_TASK,EMPTY_TASK,EMPTY_TASK,EMPTY_TASK};
 //static int task_queue_empty_flag = 1;
 int is_task_queue_empty_unsafe(void){
 	return (memcmp(task_queue, empty_task_queue, N_FLOORS*sizeof(int)) == 0);
 }
-int task_queue[N_FLOORS] = {EMPTY_TASK,EMPTY_TASK,EMPTY_TASK,EMPTY_TASK};
 pthread_mutex_t task_queue_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t task_queue_empty_event_cv = PTHREAD_COND_INITIALIZER;
 event_t task_queue_NOT_empty_event = {
@@ -55,14 +56,10 @@ int cmpfunc (const void * a, const void * b)
 {
    return ( *(int*)a - *(int*)b );
 }
-//pthread_mutex_t task_queue_lock = PTHREAD_MUTEX_INITIALIZER;
-//pthread_cond_t new_task_cv = PTHREAD_COND_INITIALIZER;
-//event_t new_task_event = {
-//		.cv = &new_task_cv,
-//		.mutex = &task_queue_lock
-//};
+
+static int current_fetch_head = 0;/* either top or 0 to the sorted queue */
 int fetch_task(void){
-	static int current_fetch_head = 0;/* either top or 0 to the sorted queue */
+
 
 	if(task_queue_top>=0&&task_queue_top<N_FLOORS){
 		if(abs(task_queue[task_queue_top]-get_last_stable_floor()-get_motor_moving_vector())
@@ -74,11 +71,7 @@ int fetch_task(void){
 			current_fetch_head = task_queue_top;
 		}
 		printf("fetch head is %d\n\n",current_fetch_head);
-//		if(task_queue_top!=0)
-//			task_queue_top--;
 		int ret = task_queue[current_fetch_head];
-//		task_queue[current_fetch_head] = EMPTY_TASK;
-		qsort(task_queue, N_FLOORS, sizeof(int), cmpfunc);
 		return ret;
 	}
 	return EMPTY_TASK;
@@ -89,14 +82,23 @@ int fetch_task_max(void){
 int fetch_task_min(void){
 	return task_queue[0];
 }
+int pop_task(void){
+	pthread_mutex_lock(&task_queue_lock);
+	if(task_queue_top!=0)
+		task_queue_top--;
+	int ret = task_queue[current_fetch_head];
+	task_queue[current_fetch_head] = EMPTY_TASK;
+	qsort(task_queue, N_FLOORS, sizeof(int), cmpfunc);
+	pthread_mutex_unlock(&task_queue_lock);
+	return ret;
+}
 int push_task(const int floor){
 	if(floor<0 || floor>=N_FLOORS)
 		return 0;
-	//pthread_mutex_lock(new_task_event.mutex);
+	pthread_mutex_lock(&task_queue_lock);
 	for (int i = 0; i < N_FLOORS; ++i) {
 		if(floor == task_queue[i]){
-			//pthread_cond_signal(new_task_event.cv);
-			//pthread_mutex_unlock(new_task_event.mutex);
+			pthread_mutex_unlock(&task_queue_lock);
 			return 0; /*rejected*/
 		}
 	}
@@ -110,9 +112,7 @@ int push_task(const int floor){
 	task_queue[task_queue_top] = floor;
 	qsort(task_queue, N_FLOORS, sizeof(int), cmpfunc);
 
-		//pthread_cond_signal(new_task_event.cv);
-	//pthread_mutex_unlock(new_task_event.mutex);
-
+	pthread_mutex_unlock(&task_queue_lock);
 	return 1;
 }
 
@@ -143,6 +143,7 @@ void * stop_button_controller_thread(void * data){
 
 	return NULL;
 }
+struct timeval;
 void cage_move_handler(void){
 	struct timespec timeToWait;
 	struct timeval now;

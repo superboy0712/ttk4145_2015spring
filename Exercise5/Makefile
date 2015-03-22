@@ -1,5 +1,5 @@
 # Compiler flags go here.
-CFLAGS = -g -Wall -O2 -I . -MMD -std=c99
+CFLAGS = -g -Wall -O2 -I . -MMD -std=gnu99
 
 # Linker flags go here.
 LDFLAGS = -lpthread -lcomedi -g -lm
