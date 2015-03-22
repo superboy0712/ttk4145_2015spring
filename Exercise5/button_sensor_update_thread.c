@@ -5,6 +5,8 @@
 #include <string.h>
 #include "elevator_model_data_structure.h"
 #include "elev.h"
+#include <time.h>
+#include <errno.h>
 int push_task(const int floor);
 
 void * keyboard_read_thread(){
@@ -22,18 +24,43 @@ void * keyboard_read_thread(){
 	return NULL;
 }
 #define  EMPTY_TASK 0XFFFF
+const int empty_task_queue[N_FLOORS] = {EMPTY_TASK,EMPTY_TASK,EMPTY_TASK,EMPTY_TASK};
+//static int task_queue_empty_flag = 1;
+int is_task_queue_empty_unsafe(void){
+	return (memcmp(task_queue, empty_task_queue, N_FLOORS*sizeof(int)) == 0);
+}
 int task_queue[N_FLOORS] = {EMPTY_TASK,EMPTY_TASK,EMPTY_TASK,EMPTY_TASK};
+pthread_mutex_t task_queue_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t task_queue_empty_event_cv = PTHREAD_COND_INITIALIZER;
+event_t task_queue_NOT_empty_event = {
+		.cv = &task_queue_empty_event_cv,
+		.mutex = &task_queue_lock
+};
+void * task_queue_NOT_empty_signal_broadcasting_thread(void * data){
+	data = NULL;
+	while(1){
+		usleep(500000);
+		pthread_mutex_lock(task_queue_NOT_empty_event.mutex);
+		if(is_task_queue_empty_unsafe()==0){
+			printf("task queue not empty! please work!\n\n");
+			pthread_cond_broadcast(task_queue_NOT_empty_event.cv);
+		}
+		pthread_mutex_unlock(task_queue_NOT_empty_event.mutex);
+
+	}
+	return NULL;
+}
 volatile int task_queue_top = 0;
 int cmpfunc (const void * a, const void * b)
 {
    return ( *(int*)a - *(int*)b );
 }
-pthread_mutex_t task_queue_lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t new_task_cv = PTHREAD_COND_INITIALIZER;
-event_t new_task_event = {
-		.cv = &new_task_cv,
-		.mutex = &task_queue_lock
-};
+//pthread_mutex_t task_queue_lock = PTHREAD_MUTEX_INITIALIZER;
+//pthread_cond_t new_task_cv = PTHREAD_COND_INITIALIZER;
+//event_t new_task_event = {
+//		.cv = &new_task_cv,
+//		.mutex = &task_queue_lock
+//};
 int fetch_task(void){
 	static int current_fetch_head = 0;/* either top or 0 to the sorted queue */
 
@@ -47,10 +74,10 @@ int fetch_task(void){
 			current_fetch_head = task_queue_top;
 		}
 		printf("fetch head is %d\n\n",current_fetch_head);
-		if(task_queue_top!=0)
-			task_queue_top--;
+//		if(task_queue_top!=0)
+//			task_queue_top--;
 		int ret = task_queue[current_fetch_head];
-		task_queue[current_fetch_head] = EMPTY_TASK;
+//		task_queue[current_fetch_head] = EMPTY_TASK;
 		qsort(task_queue, N_FLOORS, sizeof(int), cmpfunc);
 		return ret;
 	}
@@ -116,13 +143,39 @@ void * stop_button_controller_thread(void * data){
 
 	return NULL;
 }
-void go_to_desired_floor(int floor){
+void cage_move_handler(void){
+	struct timespec timeToWait;
+	struct timeval now;
+	int rc;
+	int floor = fetch_task();
 	while(floor != get_input_status_unsafe().floor_sensor){
+		/* */
+		if(floor == EMPTY_TASK){
+			puts("fetch empty task in cage_move_handler, that shouln't happen!");
+			return;
+		}
+		gettimeofday(&now,NULL);
+		timeToWait.tv_sec = now.tv_sec+0;
+		timeToWait.tv_nsec = (now.tv_usec+1000UL*100)*1000UL;
 		pthread_mutex_lock(floor_reached_event_ptr->mutex);
 		printf("go to desired floor %d\n\n",floor);
 		set_desired_floor_unsafe(floor);
-		pthread_cond_wait(floor_reached_event_ptr->cv, floor_reached_event_ptr->mutex);
+		rc = pthread_cond_timedwait(floor_reached_event_ptr->cv, floor_reached_event_ptr->mutex, &timeToWait );
+		if(rc == 0){
+			printf("reached event caught by cage_move_handler.\n");
+			/* TODO implement pop task , separate fetch/read and pop completed one */
+			pthread_mutex_unlock(floor_reached_event_ptr->mutex);
+			return;
+		}
+		else if (rc == ETIMEDOUT){
+			puts("time out, continue, update task if any");
+		}
+		else{
+			perror("cage_move_handler");
+		}
 		pthread_mutex_unlock(floor_reached_event_ptr->mutex);
+		/* check if new arrival tasks that may precede current task */
+		floor = fetch_task();
 	}
 }
 void open_wait_close(void){
@@ -146,16 +199,18 @@ void *elevator_running_process(void * data){
 		/**
 		 *  fetch a new task
 		 */
-		int floor = EMPTY_TASK;
 		printf("empty task init!\n\n");
-		while(floor == EMPTY_TASK){
-			usleep(50000);
-			floor = fetch_task();
-			printf("fetch task %d\n\n\n", floor);
+
+		while(is_task_queue_empty_unsafe()){
+			/* wati till task queue not empty */
+			pthread_mutex_lock(task_queue_NOT_empty_event.mutex);
+				pthread_cond_wait(task_queue_NOT_empty_event.cv, task_queue_NOT_empty_event.mutex);
+				printf("elevator Catched not empty signal!\n\n");
+			pthread_mutex_unlock(task_queue_NOT_empty_event.mutex);
 		}
 
-		printf("calling go to floor, wait for reached!\n\n");
-		go_to_desired_floor(floor);
+		printf("MOVING, wait for reached!\n\n");
+		cage_move_handler();
 		printf("reached floor, recieved reached signal!\n\n");
 		sleep(1); /* wait for stop stable then open */
 		/* clear the correspondent floor light */
