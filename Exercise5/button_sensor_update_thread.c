@@ -59,21 +59,33 @@ int cmpfunc (const void * a, const void * b)
 }
 
 static int current_fetch_head = 0;/* either top or 0 to the sorted queue */
+void update_fetch_head(void){
+	pthread_mutex_lock(&task_queue_lock);
+	if(abs(task_queue[task_queue_top]-get_last_stable_floor()-get_motor_moving_vector())
+					>
+					abs(task_queue[0]-get_last_stable_floor()-get_motor_moving_vector())){
+		/* moving up fetch from the smallest */
+		current_fetch_head = 0;
+	} else {
+		current_fetch_head = task_queue_top;
+	}
+	printf("fetch head is %d\n\n",current_fetch_head);
+	pthread_mutex_unlock(&task_queue_lock);
+}
 int fetch_task(void){
 	if(task_queue_top>=0&&task_queue_top<N_FLOORS){
-		pthread_mutex_lock(&task_queue_lock);
+		/*
 		if(abs(task_queue[task_queue_top]-get_last_stable_floor()-get_motor_moving_vector())
 				>=
-				abs(task_queue[0]-get_last_stable_floor()-get_motor_moving_vector())){
+				abs(task_queue[0]-get_last_stable_floor()-get_motor_moving_vector()))
+		*/
+		if(get_motor_moving_vector()>=0){
 			/* moving up fetch from the smallest */
 			current_fetch_head = 0;
 		} else {
 			current_fetch_head = task_queue_top;
 		}
-		printf("fetch head is %d\n\n",current_fetch_head);
-		int ret = task_queue[current_fetch_head];
-		pthread_mutex_unlock(&task_queue_lock);
-		return ret;
+		return task_queue[current_fetch_head];;
 	}
 	return EMPTY_TASK;
 }
@@ -149,6 +161,7 @@ void cage_move_handler(void){
 	struct timeval now;
 	int rc;
 	int floor = fetch_task();
+	update_fetch_head();
 	while(1){
 		/* */
 
