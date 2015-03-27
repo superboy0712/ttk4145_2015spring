@@ -74,18 +74,21 @@ void update_fetch_head(void){
 				}
 			}
 			/* no valid, change direction */
-			if(i == N_task_in_queue){
+			if(task_queue[i] == EMPTY_TASK){
 				goto FETCH_FROM_HIGHEST;
 			}
 
 		} else if(current_moving_vector < 0){
 FETCH_FROM_HIGHEST:
-			for(int i = N_task_in_queue-1 ; i > 0; i--){
-				if(task_queue[i] <= current_floor){
-					current_fetch_head = i;
+
+			for( int j = N_task_in_queue-1 ; j > 0; j--){
+				if(task_queue[j] <= current_floor){
+					current_fetch_head = j;
 					break;
 				}
-
+			}
+			if(task_queue[current_fetch_head] == EMPTY_TASK){
+				current_fetch_head = 0;
 			}
 		}
 //		 else {
