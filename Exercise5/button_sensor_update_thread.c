@@ -28,8 +28,9 @@ void * keyboard_read_thread(){
 const int empty_task_queue[N_FLOORS] = {EMPTY_TASK,EMPTY_TASK,EMPTY_TASK,EMPTY_TASK};
 int task_queue[N_FLOORS] = {EMPTY_TASK,EMPTY_TASK,EMPTY_TASK,EMPTY_TASK};
 //static int task_queue_empty_flag = 1;
+volatile int N_task_in_queue = 0;
 int is_task_queue_empty_unsafe(void){
-	return (memcmp(task_queue, empty_task_queue, N_FLOORS*sizeof(int)) == 0);
+	return (N_task_in_queue == 0);
 }
 pthread_mutex_t task_queue_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t task_queue_empty_event_cv = PTHREAD_COND_INITIALIZER;
@@ -52,56 +53,96 @@ void * task_queue_NOT_empty_signal_broadcasting_thread(void * data){
 	}
 	return NULL;
 }
-volatile int task_queue_top = 0;
+
 int cmpfunc (const void * a, const void * b)
 {
    return ( *(int*)a - *(int*)b );
 }
 
-static int current_fetch_head = 0;/* either top or 0 to the sorted queue */
+static int current_fetch_head = 0;
 void update_fetch_head(void){
-	pthread_mutex_lock(&task_queue_lock);
-	if(abs(task_queue[task_queue_top]-get_last_stable_floor()-get_motor_moving_vector())
-					>
-					abs(task_queue[0]-get_last_stable_floor()-get_motor_moving_vector())){
-		/* moving up fetch from the smallest */
-		current_fetch_head = 0;
-	} else {
-		current_fetch_head = task_queue_top;
+	if(N_task_in_queue>0&&N_task_in_queue<=N_FLOORS){
+		float current_floor = get_current_floor_position();
+		int current_moving_vector = get_motor_moving_vector();
+		if(current_moving_vector >= 0){
+			/* moving up test from the smallest, until the task > current floor */
+			int i = 0;
+			for( i = 0; i < N_task_in_queue; i++){
+				if(task_queue[i] >= current_floor){
+					current_fetch_head = i;
+					break;
+				}
+			}
+			/* no valid, change direction */
+			if(i == N_task_in_queue){
+				goto FETCH_FROM_HIGHEST;
+			}
+
+		} else if(current_moving_vector < 0){
+FETCH_FROM_HIGHEST:
+			for(int i = N_task_in_queue-1 ; i > 0; i--){
+				if(task_queue[i] <= current_floor){
+					current_fetch_head = i;
+					break;
+				}
+
+			}
+		}
+//		 else {
+//			/* vector = 0*/
+//			if(get_motor_last_none_zero_motor_moving_vector()>0
+//					|| current_floor<=task_queue[0]){
+//				/* last history moving up or now stop at lower floor than minimum floor in the queue */
+//				for(int i = 0; i < N_task_in_queue; i++){
+//					if((task_queue[i] != EMPTY_TASK) && (task_queue[i] >= current_floor)){
+//						current_fetch_head = i;
+//						break;
+//					}else{
+//						current_fetch_head = 0;
+//						break;
+//					}
+//				}
+//			} else
+//			if(get_motor_last_none_zero_motor_moving_vector()<0
+//								|| current_floor>=task_queue[N_task_in_queue-1]){
+//				/* last history moving down or now stop at maximum floor in the queue */
+//				for(int i = N_task_in_queue; i > 0; i--){
+//					if((task_queue[i] != EMPTY_TASK) && (task_queue[i] < current_floor)){
+//						current_fetch_head = i;
+//						break;
+//					}else{
+//						if(N_task_in_queue!= N_FLOORS)
+//							current_fetch_head = N_task_in_queue-1;
+//						else
+//							current_fetch_head = N_FLOORS-1;
+//						break;
+//					}
+//				}
+//			}
+//
+//		}
+		printf("fetch head from update is %d, floor:%d\n\n",current_fetch_head,task_queue[current_fetch_head] );
 	}
-	printf("fetch head is %d\n\n",current_fetch_head);
-	pthread_mutex_unlock(&task_queue_lock);
 }
 int fetch_task(void){
-	if(task_queue_top>=0&&task_queue_top<N_FLOORS){
-		/*
-		if(abs(task_queue[task_queue_top]-get_last_stable_floor()-get_motor_moving_vector())
-				>=
-				abs(task_queue[0]-get_last_stable_floor()-get_motor_moving_vector()))
-		*/
-		if(get_motor_moving_vector()>=0){
-			/* moving up fetch from the smallest */
-			current_fetch_head = 0;
-		} else {
-			current_fetch_head = task_queue_top;
-		}
-		return task_queue[current_fetch_head];;
-	}
-	return EMPTY_TASK;
+	update_fetch_head();
+	printf("fetch head from fetch_task is %d, floor:%d\n\n",current_fetch_head,task_queue[current_fetch_head] );
+	return task_queue[current_fetch_head];;
 }
 int fetch_task_max(void){
-	return task_queue[task_queue_top];
+	return task_queue[N_task_in_queue-1];
 }
 int fetch_task_min(void){
 	return task_queue[0];
 }
 int pop_task(void){
 	pthread_mutex_lock(&task_queue_lock);
-	if(task_queue_top!=0)
-		task_queue_top--;
+	if(N_task_in_queue > 0)
+		N_task_in_queue--;
 	int ret = task_queue[current_fetch_head];
 	task_queue[current_fetch_head] = EMPTY_TASK;
 	qsort(task_queue, N_FLOORS, sizeof(int), cmpfunc);
+	update_fetch_head();
 	pthread_mutex_unlock(&task_queue_lock);
 	return ret;
 }
@@ -115,16 +156,16 @@ int push_task(const int floor){
 			return 0; /*rejected*/
 		}
 	}
-	if(task_queue_top<0 || task_queue_top>= N_FLOORS){
+	if(N_task_in_queue<0 || N_task_in_queue> N_FLOORS){
 		puts("error in task_queue_top");
 		return 0;
 	}
-	if(task_queue_top != N_FLOORS-1)
-			task_queue_top ++;
+	if(N_task_in_queue < N_FLOORS)
+			N_task_in_queue ++;
 
-	task_queue[task_queue_top] = floor;
+	task_queue[N_task_in_queue] = floor;
 	qsort(task_queue, N_FLOORS, sizeof(int), cmpfunc);
-
+	update_fetch_head();
 	pthread_mutex_unlock(&task_queue_lock);
 	return 1;
 }
@@ -157,11 +198,11 @@ void * stop_button_controller_thread(void * data){
 	return NULL;
 }
 void cage_move_handler(void){
-	struct timespec timeToWait;
+	struct timespec time_to_wait;
 	struct timeval now;
 	int rc;
+	//update_fetch_head();
 	int floor = fetch_task();
-	update_fetch_head();
 	while(1){
 		/* */
 
@@ -170,13 +211,13 @@ void cage_move_handler(void){
 			return;
 		}
 		gettimeofday(&now,NULL);
-		timeToWait.tv_sec = now.tv_sec+0;
-		timeToWait.tv_nsec = (now.tv_usec+1000UL*50)*1000UL;
+		time_to_wait.tv_sec = now.tv_sec+0;
+		time_to_wait.tv_nsec = (now.tv_usec+1000UL*50)*1000UL;
 		pthread_mutex_lock(floor_reached_event_ptr->mutex);
+		floor = fetch_task();
 		printf("go to desired floor %d\n\n",floor);
 		set_desired_floor_unsafe(floor);
-		rc = pthread_cond_timedwait(floor_reached_event_ptr->cv, floor_reached_event_ptr->mutex, &timeToWait );
-		floor = fetch_task();
+		rc = pthread_cond_timedwait(floor_reached_event_ptr->cv, floor_reached_event_ptr->mutex, &time_to_wait );
 		if(rc == 0){
 			pthread_mutex_unlock(floor_reached_event_ptr->mutex);
 			printf("reached event caught by cage_move_handler.\n");
@@ -202,12 +243,13 @@ void cage_move_handler(void){
 		}
 		else if (rc == ETIMEDOUT){
 			puts("time out, continue, update task if any");
+
 		}
 		else{
-			perror("cage_move_handler");
+			perror("cage_move_handler, unknown errono");
 		}
 		/* check if new arrival tasks that may precede current task */
-		//floor = fetch_task();
+		floor = fetch_task();
 		pthread_mutex_unlock(floor_reached_event_ptr->mutex);
 
 	}

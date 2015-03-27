@@ -55,4 +55,5 @@ extern int get_motor_last_none_zero_motor_moving_vector(void);/* indicate last n
 extern int get_last_stable_floor(void); /* last stable floor number, not somewhere in between */
 /* \para log for redirecting log */
 extern int elevator_model_init(FILE* log);
+extern float get_current_floor_position(void);
 #endif /* ELEVATOR_MODEL_DATA_STRUCTURE_H_ */

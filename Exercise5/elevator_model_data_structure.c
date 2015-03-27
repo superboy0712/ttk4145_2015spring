@@ -117,7 +117,8 @@ void set_desired_floor_unsafe(const int floor){
 	desired_floor = floor;
 }
 int task_queue[N_FLOORS];
-int task_queue_top;
+int N_task_in_queue;
+static float current_floor_position = 0.0;
 void *input_polling_thread(void * data){
 	data = NULL;
 	while(1){
@@ -150,7 +151,7 @@ void *input_polling_thread(void * data){
 //		printf("Current stop value is:%d\n",input_status.stop_button);
 
 //		printf("Current floor value is:%d\n",desired_floor);
-
+		printf("current position %f\n", current_floor_position);
 		pthread_mutex_unlock(&input_status_lock);
 		usleep(50000);
 	}
@@ -171,6 +172,20 @@ int get_motor_last_none_zero_motor_moving_vector(void){
 static int last_stable_floor = 1; /* init moving downwards until reach a stable */
 int get_last_stable_floor(void){
 	return last_stable_floor;
+}
+float get_current_floor_position(void){
+//	int temp = motor_moving_vector;
+//	int sensor = elev_get_floor_sensor_signal();
+//	if(sensor!=-1){
+//		current_floor_position = sensor + 0.0;
+//	} else {
+//		if(temp > 0){
+//			current_floor_position = last_stable_floor + 0.5;
+//		} else if(temp <0){
+//			current_floor_position = last_stable_floor - 0.5;
+//		}
+//	}
+	return current_floor_position;
 }
 /* input: read_desired_floor */
 void * motor_driver_thread(void * data_motor_controller_ptr)
@@ -241,8 +256,18 @@ void * light_driver_thread(){
 		}
 		int floor_indicator_light = elev_get_floor_sensor_signal();
 		if(floor_indicator_light>=0 && floor_indicator_light< N_FLOORS)
+			//
 			elev_set_floor_indicator(floor_indicator_light);
-
+			int temp = motor_moving_vector;
+			if(floor_indicator_light!=-1){
+				current_floor_position = floor_indicator_light + 0.0;
+			} else {
+				if(temp > 0){
+					current_floor_position = last_stable_floor + 0.5;
+				} else if(temp <0){
+					current_floor_position = last_stable_floor - 0.5;
+				}
+			}
 		elev_set_stop_lamp(light_status.stop_light);
 		elev_set_door_open_lamp(light_status.door_open_light);
 		usleep(10000);
