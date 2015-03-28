@@ -30,7 +30,7 @@ int task_queue[N_FLOORS] = {EMPTY_TASK,EMPTY_TASK,EMPTY_TASK,EMPTY_TASK};
 //static int task_queue_empty_flag = 1;
 volatile int N_task_in_queue = 0;
 int is_task_queue_empty_unsafe(void){
-	return (N_task_in_queue == 0);
+	return (memcmp(task_queue, empty_task_queue, N_FLOORS) == 0);
 }
 pthread_mutex_t task_queue_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t task_queue_empty_event_cv = PTHREAD_COND_INITIALIZER;
