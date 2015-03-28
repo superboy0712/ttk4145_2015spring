@@ -42,7 +42,7 @@ pthread_t task_queue_NOT_empty_signal_broadcasting_th;
 void * task_queue_NOT_empty_signal_broadcasting_thread(void * data){
 	data = NULL;
 	while(1){
-		usleep(500000);
+		usleep(500000); /* the worst response time from idle to work should be approximately 0.5 * 2 = 1 second */
 		pthread_mutex_lock(task_queue_NOT_empty_event.mutex);
 		if(is_task_queue_empty_unsafe()==0){
 			printf("task queue not empty! please work!\n\n");
@@ -331,7 +331,7 @@ int main(){
 
 		input_read = get_input_status_unsafe();
 
- //TODO
+ //TODO seperate tasks registered and lights on manipulation
 		light_to_write = get_light_status();
 		for( int floor = 0; floor < N_FLOORS; floor++){
 			for( int button_type = 0; button_type < 3; button_type++){
