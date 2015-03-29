@@ -17,7 +17,7 @@
  *  @
  */
 #include "lift_task_queue.h"
-static const char *request_parse_string_table[8] = {
+const char *request_parse_string_table[8] = {
 		[0] = "req_empty",
 		"req_up",
 		"req_down",

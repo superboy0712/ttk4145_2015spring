@@ -10,7 +10,10 @@
 #define N_FLOORS 19
 
 typedef enum {
-	request_call_up = 1, request_call_down = 2, request_call_cmd = 4
+	request_empty = 0,
+	request_call_up = 1, request_call_down = 2, request_call_cmd = 4,
+	request_up_n_dn = 3, request_up_n_cmd = 5, request_dn_n_cmd = 6,
+	request_up_dn_cmd = 7
 } request_type_t;
 
 extern void print_request_pool(const request_type_t * const pool, unsigned int length);
