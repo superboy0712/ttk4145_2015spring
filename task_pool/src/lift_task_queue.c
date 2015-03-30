@@ -27,7 +27,6 @@ const char *request_parse_string_table[8] = {
 		"req_down & cmd",
 		"req_down & up & cmd"
 };
-static request_type_t task_pool_secret[N_FLOORS] = {0};
 void print_request_pool(const request_type_t * const pool, unsigned int length) {
 	assert(length > 0);
 	for (int i = 0; i < length; i++) {
@@ -65,14 +64,3 @@ int get_nearest_request_of_specified_downward(const request_type_t * const pool,
 	return -1;
 }
 
-void push_request(int floor, request_type_t type){
-	set_request_type(task_pool_secret+floor, type);
-}
-
-void pop_request(int floor, request_type_t type){
-	clr_request_type(task_pool_secret+floor, type);
-}
-
-request_type_t get_request(int floor){
-	return get_request_type(task_pool_secret+floor, request_call_up|request_call_down|request_call_cmd);
-}

@@ -5,7 +5,7 @@ CC = gcc
 LDFLAGS = -lpthread -lm
 
 # list of sources
-ELEVSRC = ./src/lift_task_queue.c ./src/test_main.c
+ELEVSRC = ./src/lift_task_queue.c ./src/test_main.c ./src/taskpool_policies_wrapper.c
 
 # program executable file name.
 TARGET = a.out

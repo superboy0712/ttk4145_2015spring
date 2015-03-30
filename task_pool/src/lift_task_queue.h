@@ -7,7 +7,7 @@
 
 #ifndef LIFT_TASK_QUEUE_H_
 #define LIFT_TASK_QUEUE_H_
-#define N_FLOORS 19
+#define N_FLOORS 19/* should be replaced by a config.h header file */
 
 typedef enum {
 	request_empty = 0,
