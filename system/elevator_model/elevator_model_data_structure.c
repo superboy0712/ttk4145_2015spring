@@ -12,7 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "io.h"
+#include "../drivers/elev.h"
+#include "../drivers/io.h"
 #include "elevator_model_data_structure.h"
 
 #define MOTOR_EM_STOP_CMD 0xffff

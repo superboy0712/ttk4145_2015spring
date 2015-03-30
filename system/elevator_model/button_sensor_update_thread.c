@@ -4,10 +4,10 @@
 #include <unistd.h>
 #include <string.h>
 #include "elevator_model_data_structure.h"
-#include "elev.h"
 #include <time.h>
 #include <sys/time.h>
 #include <errno.h>
+#define N_FLOORS 4
 int push_task(const int floor);
 
 void * keyboard_read_thread(){

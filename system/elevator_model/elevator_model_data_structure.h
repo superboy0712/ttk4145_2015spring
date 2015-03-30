@@ -12,7 +12,7 @@
 #define ELEVATOR_MODEL_DATA_STRUCTURE_H_
 #include <stdio.h>
 #include <pthread.h>
-#include "elev.h"
+#include "../drivers/elev.h"
 #define MOTOR_EM_STOP_CMD 0xffff
 typedef struct event_st {
 	pthread_cond_t  *cv;
