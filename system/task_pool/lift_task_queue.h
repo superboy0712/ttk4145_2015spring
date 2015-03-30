@@ -7,7 +7,6 @@
 
 #ifndef LIFT_TASK_QUEUE_H_
 #define LIFT_TASK_QUEUE_H_
-#define N_FLOORS 19/* should be replaced by a config.h header file */
 
 typedef enum {
 	request_empty = 0,
@@ -24,4 +23,5 @@ extern int get_nearest_request_of_specified_upward(const request_type_t * const 
 													int specified, request_type_t type);
 extern int get_nearest_request_of_specified_downward(const request_type_t * const pool,
 													int specified, request_type_t type);
+extern void task_pool_init(unsigned int length);/* for test bench only*/
 #endif /* LIFT_TASK_QUEUE_H_ */

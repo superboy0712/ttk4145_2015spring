@@ -14,24 +14,25 @@
  *  @
  */
 #include "lift_task_queue.h"
-request_type_t request_pool[N_FLOORS] = { 0 };
-request_type_t request_pool2[N_FLOORS] = { 0, 0, 0, 1, 2, 3, 4, 7, 6, 5, 4, 3,
+#define N_LENGTH_OF_TASK_POOL 19
+request_type_t request_pool[N_LENGTH_OF_TASK_POOL] = { 0 };
+request_type_t request_pool2[N_LENGTH_OF_TASK_POOL] = { 0, 0, 0, 1, 2, 3, 4, 7, 6, 5, 4, 3,
 		2, 3, 1, 3, 1, request_call_up, 0 };
-request_type_t request_pool3[N_FLOORS] = { 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+request_type_t request_pool3[N_LENGTH_OF_TASK_POOL] = { 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
 		7, 7, 7, 7, 7, request_call_down, request_call_down };
-request_type_t request_pool4[N_FLOORS] = { request_call_down, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+request_type_t request_pool4[N_LENGTH_OF_TASK_POOL] = { request_call_down, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, request_call_up };
 int test1(void) {
 	puts("!!!Hello World!!!"); /* prints !!!Hello World!!! */
-	print_request_pool(request_pool, N_FLOORS);
+	print_request_pool(request_pool, N_LENGTH_OF_TASK_POOL);
 	set_request_type(request_pool + 5, request_call_cmd);
 	set_request_type(request_pool + 13, request_call_cmd);
 	set_request_type(request_pool + 0, request_call_cmd);
-	print_request_pool(request_pool, N_FLOORS);
+	print_request_pool(request_pool, N_LENGTH_OF_TASK_POOL);
 	clr_request_type(request_pool + 5, request_call_cmd);
 	clr_request_type(request_pool + 13, request_call_down);
 	set_request_type(request_pool + 0, request_call_up);
-	print_request_pool(request_pool, N_FLOORS);
+	print_request_pool(request_pool, N_LENGTH_OF_TASK_POOL);
 	for (int i = 0; i < 19; i++) {
 		set_request_type(request_pool + i,
 				request_call_up | request_call_down | request_call_cmd);
@@ -41,7 +42,7 @@ int test1(void) {
 	}
 	puts("");
 	puts("udc");
-	print_request_pool(request_pool, N_FLOORS);
+	print_request_pool(request_pool, N_LENGTH_OF_TASK_POOL);
 	for (int i = 0; i < 19; i++) {
 		int j = get_nearest_request_of_specified_upward(request_pool2, i,
 				request_call_up | request_call_down | request_call_cmd);
@@ -93,7 +94,7 @@ int test1(void) {
 }
 void test2(void) {
 	puts("\ndownwards test!");
-	print_request_pool(request_pool2, N_FLOORS);
+	print_request_pool(request_pool2, N_LENGTH_OF_TASK_POOL);
 	puts("udc");
 	for (int i = 0; i < 19; i++) {
 		int j = get_nearest_request_of_specified_downward(request_pool2, i,
@@ -173,14 +174,14 @@ void scheduling_test(int cur_floor, int dir, const request_type_t * const pool,
 	int rc = 0;
 	int gnr_up_count = 0;
 	int gnr_dn_count = 0;
-	request_type_t request_pool_local[N_FLOORS];
-	memcpy(request_pool_local, pool, N_FLOORS * sizeof(request_type_t));
+	request_type_t request_pool_local[N_LENGTH_OF_TASK_POOL];
+	memcpy(request_pool_local, pool, N_LENGTH_OF_TASK_POOL * sizeof(request_type_t));
 	printf("\n\n\n%s\n", testname);
 	puts("origin pool: ");
-	print_request_pool(request_pool_local, N_FLOORS);
+	print_request_pool(request_pool_local, N_LENGTH_OF_TASK_POOL);
 	printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-			get_nr_of_req(request_pool_local, N_FLOORS), cur_floor, dir);
-	while (get_nr_of_req(request_pool_local, N_FLOORS) != 0) {
+			get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, dir);
+	while (get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL) != 0) {
 		switch (dir) {
 		case 1:
 			rc = get_nearest_request_of_specified_upward(request_pool_local,
@@ -193,7 +194,7 @@ void scheduling_test(int cur_floor, int dir, const request_type_t * const pool,
 				else {
 					/* even */
 					rc = get_nearest_request_of_specified_downward(
-							request_pool_local, N_FLOORS - 1,
+							request_pool_local, N_LENGTH_OF_TASK_POOL - 1,
 							request_call_down | request_call_cmd);
 					clr_request_type(request_pool_local + rc,
 							request_call_down | request_call_cmd);
@@ -240,12 +241,12 @@ void scheduling_test(int cur_floor, int dir, const request_type_t * const pool,
 		}
 		//print_request_pool(request_pool_local, N_FLOORS);
 		printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-				get_nr_of_req(request_pool_local, N_FLOORS), cur_floor, dir);
+				get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, dir);
 	}
 	puts("end!");
-	print_request_pool(request_pool_local, N_FLOORS);
+	print_request_pool(request_pool_local, N_LENGTH_OF_TASK_POOL);
 	printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-			get_nr_of_req(request_pool_local, N_FLOORS), cur_floor, dir);
+			get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, dir);
 }
 /**
  * @return -1: empty, otherwise the optimal request
@@ -290,7 +291,7 @@ int get_optimal_request_from_specified_on_search_direction(
 			}
 			else {
 				ret = get_nearest_request_of_specified_downward(pool,
-				N_FLOORS - 1, request_dn_n_cmd);
+				N_LENGTH_OF_TASK_POOL - 1, request_dn_n_cmd);
 				*ret_type = request_dn_n_cmd;
 			}
 			if (ret == -1) {
@@ -312,9 +313,9 @@ extern const char *request_parse_string_table[8];
 void get_optimal_test(int dir, const request_type_t * const pool,
 		const char * testname) {
 	printf("---------------------------%s, dir %d!!---------------------------",testname, dir);
-	print_request_pool(pool, N_FLOORS);
+	print_request_pool(pool, N_LENGTH_OF_TASK_POOL);
 	request_type_t ret_type = request_empty;
-	for (int i = 0; i < N_FLOORS; i++) {
+	for (int i = 0; i < N_LENGTH_OF_TASK_POOL; i++) {
 		int temp_dir = dir;
 		int j = get_optimal_request_from_specified_on_search_direction(
 				request_pool2, i, &temp_dir, &ret_type);
@@ -324,18 +325,18 @@ void get_optimal_test(int dir, const request_type_t * const pool,
 void scheduling_test_new(int cur_floor, int dir,
 		const request_type_t * const pool, const char * testname) {
 
-	request_type_t request_pool_local[N_FLOORS];
-	memcpy(request_pool_local, pool, N_FLOORS * sizeof(request_type_t));
+	request_type_t request_pool_local[N_LENGTH_OF_TASK_POOL];
+	memcpy(request_pool_local, pool, N_LENGTH_OF_TASK_POOL * sizeof(request_type_t));
 	printf("\n\n\n%s\n", testname);
 	puts("origin pool: ");
-	print_request_pool(request_pool_local, N_FLOORS);
+	print_request_pool(request_pool_local, N_LENGTH_OF_TASK_POOL);
 	int temp_dir = dir;
 	printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-			get_nr_of_req(request_pool_local, N_FLOORS), cur_floor, temp_dir);
+			get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
 	puts("---------------------------Tests Start!!---------------------------");
 	int rc = cur_floor;
 	request_type_t ret_type;
-	while (get_nr_of_req(request_pool_local, N_FLOORS) != 0) {
+	while (get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL) != 0) {
 		rc = get_optimal_request_from_specified_on_search_direction(request_pool_local,
 				cur_floor, &temp_dir, &ret_type);
 		if(rc == -1){
@@ -346,13 +347,13 @@ void scheduling_test_new(int cur_floor, int dir,
 		/** printing **/
 		//print_request_pool(request_pool_local, N_FLOORS);
 		printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-				get_nr_of_req(request_pool_local, N_FLOORS), cur_floor, temp_dir);
+				get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
 	}
 	puts("---------------------------Tests End!!---------------------------");
 	puts("---------------------------Final Result!!---------------------------");
-	print_request_pool(request_pool_local, N_FLOORS);
+	print_request_pool(request_pool_local, N_LENGTH_OF_TASK_POOL);
 	printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-			get_nr_of_req(request_pool_local, N_FLOORS), cur_floor, temp_dir);
+			get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
 }
 typedef enum states {
 	first_try = 1,
@@ -395,7 +396,7 @@ int get_optimal_request_from_specified_on_search_direction_ver2(
 							request_up_n_cmd);
 					*ret_type = request_up_n_cmd;
 				} else {
-					ret = get_nearest_request_of_specified_downward(pool, N_FLOORS-1,
+					ret = get_nearest_request_of_specified_downward(pool, N_LENGTH_OF_TASK_POOL-1,
 							request_dn_n_cmd);
 					*ret_type = request_dn_n_cmd;
 				}
@@ -432,18 +433,18 @@ int get_optimal_request_from_specified_on_search_direction_ver2(
 void scheduling_test_new_ver2(int cur_floor, int dir,
 		const request_type_t * const pool, const char * testname) {
 
-	request_type_t request_pool_local[N_FLOORS];
-	memcpy(request_pool_local, pool, N_FLOORS * sizeof(request_type_t));
+	request_type_t request_pool_local[N_LENGTH_OF_TASK_POOL];
+	memcpy(request_pool_local, pool, N_LENGTH_OF_TASK_POOL * sizeof(request_type_t));
 	printf("\n\n\n%s\n", testname);
 	puts("origin pool: ");
-	print_request_pool(request_pool_local, N_FLOORS);
+	print_request_pool(request_pool_local, N_LENGTH_OF_TASK_POOL);
 	int temp_dir = dir;
 	printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-			get_nr_of_req(request_pool_local, N_FLOORS), cur_floor, temp_dir);
+			get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
 	puts("---------------------------Tests Start!!---------------------------");
 	int rc = cur_floor;
 	request_type_t ret_type;
-	while (get_nr_of_req(request_pool_local, N_FLOORS) != 0) {
+	while (get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL) != 0) {
 		rc = get_optimal_request_from_specified_on_search_direction_ver2(request_pool_local,
 				cur_floor, &temp_dir, &ret_type);
 		if(rc == -1){
@@ -454,15 +455,16 @@ void scheduling_test_new_ver2(int cur_floor, int dir,
 		/** printing **/
 		//print_request_pool(request_pool_local, N_FLOORS);
 		printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-				get_nr_of_req(request_pool_local, N_FLOORS), cur_floor, temp_dir);
+				get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
 	}
 	puts("---------------------------Tests End!!---------------------------");
 	puts("---------------------------Final Result!!---------------------------");
-	print_request_pool(request_pool_local, N_FLOORS);
+	print_request_pool(request_pool_local, N_LENGTH_OF_TASK_POOL);
 	printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-			get_nr_of_req(request_pool_local, N_FLOORS), cur_floor, temp_dir);
+			get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
 }
 int main(void) {
+	task_pool_init(N_LENGTH_OF_TASK_POOL);
 	//test1();
 	//test3(7 , -1);
 //	test2();
@@ -481,8 +483,8 @@ int main(void) {
 	scheduling_test_new_ver2(8, -1, request_pool3, "8 down full");
 	scheduling_test_new_ver2(8, 1, request_pool, "8 up empty");
 	scheduling_test_new_ver2(8, -1, request_pool, "8 down empty");
-	scheduling_test(N_FLOORS - 1, -1, request_pool3, "top down");
+	scheduling_test(N_LENGTH_OF_TASK_POOL - 1, -1, request_pool3, "top down");
 	scheduling_test(0, 1, request_pool3, "bottom up");
-	scheduling_test(N_FLOORS - 1, 1, request_pool3, "top up");
+	scheduling_test(N_LENGTH_OF_TASK_POOL - 1, 1, request_pool3, "top up");
 	return 0;
 }

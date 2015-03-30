@@ -27,6 +27,7 @@ const char *request_parse_string_table[8] = {
 		"req_down & cmd",
 		"req_down & up & cmd"
 };
+static unsigned int N_LENGTH_OF_TASK_POOL = 4; /*default*/
 void print_request_pool(const request_type_t * const pool, unsigned int length) {
 	assert(length > 0);
 	for (int i = 0; i < length; i++) {
@@ -45,7 +46,7 @@ inline void clr_request_type(request_type_t *ptr, request_type_t type) {
 }
 int get_nearest_request_of_specified_upward(const request_type_t * const pool,
 		int specified, request_type_t type) {
-	for (int i = 0; i < N_FLOORS; i++) {
+	for (int i = 0; i < N_LENGTH_OF_TASK_POOL; i++) {
 		if ((get_request_type(pool + i, type) != 0) && (i >= specified)) {
 			return i;
 		}
@@ -55,7 +56,7 @@ int get_nearest_request_of_specified_upward(const request_type_t * const pool,
 }
 int get_nearest_request_of_specified_downward(const request_type_t * const pool,
 		int specified, request_type_t type) {
-	for (int i = N_FLOORS-1; i >=0; i--) {
+	for (int i = N_LENGTH_OF_TASK_POOL-1; i >=0; i--) {
 		if ((get_request_type(pool + i, type) != 0) && (i <= specified)) {
 			return i;
 		}
@@ -63,4 +64,6 @@ int get_nearest_request_of_specified_downward(const request_type_t * const pool,
 	puts("get_nearest_request_of_specified_downward: no valid return");
 	return -1;
 }
-
+void task_pool_init(unsigned int length){
+	N_LENGTH_OF_TASK_POOL = length;
+}

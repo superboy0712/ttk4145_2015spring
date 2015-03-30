@@ -6,8 +6,8 @@
  */
 
 #include "lift_task_queue.h"
-
-static request_type_t task_pool_secret[N_FLOORS] = {0};
+#define N_LENGTH_OF_TASK_POOL 4/* should be replaced by a config.h header file */
+static request_type_t task_pool_secret[N_LENGTH_OF_TASK_POOL] = {0};
 
 void push_request(int floor, request_type_t type){
 	set_request_type(task_pool_secret+floor, type);
@@ -58,7 +58,7 @@ static int get_optimal_request_from_specified_on_search_direction(
 			}
 			else {
 				ret = get_nearest_request_of_specified_downward(pool,
-				N_FLOORS - 1, request_dn_n_cmd);
+				N_LENGTH_OF_TASK_POOL - 1, request_dn_n_cmd);
 				*ret_type = request_dn_n_cmd;
 			}
 			if (ret == -1) {
@@ -105,5 +105,5 @@ int get_optimal_req(int from, int *dir, request_type_t *ret_type){
 			ret_type);
 }
 unsigned int get_req_count(void){
-	return get_nr_of_req(task_pool_secret, N_FLOORS);
+	return get_nr_of_req(task_pool_secret, N_LENGTH_OF_TASK_POOL);
 }
