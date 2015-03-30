@@ -234,6 +234,9 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 					 * keep -1 for longer than 10 seconds, change direction;
 					 * if still -1, then means power was down, init necessarily
 					 */
+					/**
+					 * TODO or use a dedicate watch-dog thread.
+					 */
 				}
 			}
 		}

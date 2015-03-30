@@ -7,6 +7,8 @@
 #include <time.h>
 #include <sys/time.h>
 #include <errno.h>
+#include "../task_pool/lift_task_queue.h"
+#include "../task_pool/taskpool_policies_wrapper.h"
 #define N_FLOORS 4
 int push_task(const int floor);
 
@@ -299,6 +301,8 @@ void *elevator_running_process(void * data){
 	}
 	return NULL;
 }
+int button_to_request_type_transistion[3] = {
+0};
 int main(){
 
 	elevator_model_init(NULL);
