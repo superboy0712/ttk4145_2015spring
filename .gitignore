@@ -32,7 +32,8 @@
 
 # Bin directories
 bin/
-
+Bin/
+Debug/
 # Temp backup files
 *~
 
