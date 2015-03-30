@@ -76,8 +76,34 @@ static int get_optimal_request_from_specified_on_search_direction(
 	}
 	return ret;
 }
+static unsigned int get_nr_of_req(const request_type_t * pool, unsigned int length) {
+	int ret = 0;
+	for (int i = 0; i < length; i++) {
+		switch (pool[i]) {
+		case request_call_up:
+		case request_call_down:
+		case request_call_cmd:
+			ret++;
+			break;
+		case request_call_up | request_call_down:
+		case request_call_up | request_call_cmd:
+		case request_call_cmd | request_call_down:
+			ret += 2;
+			break;
+		case request_call_up | request_call_down | request_call_cmd:
+			ret += 3;
+			break;
+		default:
+			break;
+		}
+	}
+	return ret;
+}
 int get_optimal_req(int from, int *dir, request_type_t *ret_type){
 	return get_optimal_request_from_specified_on_search_direction(
 			task_pool_secret, from, dir,
 			ret_type);
+}
+unsigned int get_req_count(void){
+	return get_nr_of_req(task_pool_secret, N_FLOORS);
 }
