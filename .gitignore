@@ -36,7 +36,10 @@ Bin/
 Debug/
 # Temp backup files
 *~
-
+*.swp
+*.xml
+*.cproject
+*.project
 #ld file
 *.ld
 *.out
