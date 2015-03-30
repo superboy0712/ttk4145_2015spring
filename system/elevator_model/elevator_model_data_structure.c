@@ -325,8 +325,5 @@ int elevator_model_init( FILE * log) {
 	}
 	return rc;
 }
-//int main(void) {
-//	return 0;
-//}
 
 

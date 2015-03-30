@@ -474,15 +474,15 @@ int main(void) {
 //	scheduling_test_new(8, -1, request_pool2, "8 down");
 	scheduling_test_new(8, 1, request_pool4, "8 up");
 	scheduling_test_new(8, -1, request_pool4, "8 down");
-//	scheduling_test(8, 1, request_pool2, "8 up");
-//	scheduling_test_new_ver2(8, 1, request_pool2, "8 up");
-//	scheduling_test_new_ver2(8, -1, request_pool2, "8 down");
-//	scheduling_test_new_ver2(8, 1, request_pool3, "8 up full");
-//	scheduling_test_new_ver2(8, -1, request_pool3, "8 down full");
-//	scheduling_test_new_ver2(8, 1, request_pool, "8 up empty");
-//	scheduling_test_new_ver2(8, -1, request_pool, "8 down empty");
-//	scheduling_test(N_FLOORS - 1, -1, request_pool3, "top down");
-//	scheduling_test(0, 1, request_pool3, "bottom up");
-//	scheduling_test(N_FLOORS - 1, 1, request_pool3, "top up");
+	scheduling_test(8, 1, request_pool2, "8 up");
+	scheduling_test_new_ver2(8, 1, request_pool2, "8 up");
+	scheduling_test_new_ver2(8, -1, request_pool2, "8 down");
+	scheduling_test_new_ver2(8, 1, request_pool3, "8 up full");
+	scheduling_test_new_ver2(8, -1, request_pool3, "8 down full");
+	scheduling_test_new_ver2(8, 1, request_pool, "8 up empty");
+	scheduling_test_new_ver2(8, -1, request_pool, "8 down empty");
+	scheduling_test(N_FLOORS - 1, -1, request_pool3, "top down");
+	scheduling_test(0, 1, request_pool3, "bottom up");
+	scheduling_test(N_FLOORS - 1, 1, request_pool3, "top up");
 	return 0;
 }
