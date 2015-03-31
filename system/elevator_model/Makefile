@@ -1,6 +1,6 @@
 # Compiler flags go here.
 CC = clang
-CFLAGS = -g -Wall -O2 -I . -MMD -std=gnu99
+CFLAGS = -g -Wall -O2 -I./ -I../ -MMD -std=gnu99
 
 # Linker flags go here.
 LDFLAGS = -lpthread -lcomedi -g -lm

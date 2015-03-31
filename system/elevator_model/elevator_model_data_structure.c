@@ -1,6 +1,6 @@
 /*****************************************************************
- * elevator_model_data_structure.c
- * Exercise5
+ * @file elevator_model_data_structure.c
+ * elevator_model
  *
  *  Created on		: Feb 28, 2015 
  *  Author			: yulongb
@@ -16,7 +16,6 @@
 #include "../drivers/io.h"
 #include "elevator_model_data_structure.h"
 
-#define MOTOR_EM_STOP_CMD 0xffff
 pthread_mutex_t input_status_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t input_changed_cv = PTHREAD_COND_INITIALIZER;
 static event_t input_events
@@ -107,7 +106,7 @@ int get_desired_floor_unsafe(void){
 	return desired_floor;
 }
 void set_desired_floor(const int floor){
-	if((floor>=0 && floor<=N_FLOORS-1) || floor==MOTOR_EM_STOP_CMD)
+	if((floor>=0 && floor<=N_FLOORS-1) )
 	{
 		pthread_mutex_lock(&desired_floor_lock);
 		desired_floor = floor;
@@ -130,9 +129,9 @@ void *input_polling_thread(void * data){
 			int up = (i==3)? (-1):elev_get_button_signal(BUTTON_CALL_UP,i);
 			int down = (i==0)? (-1):elev_get_button_signal(BUTTON_CALL_DOWN,i);
 			int cmd = elev_get_button_signal(BUTTON_COMMAND,i);
-			input_status.Button_external[i][BUTTON_CALL_UP] = up;
-			input_status.Button_external[i][BUTTON_CALL_DOWN] = down;
-			input_status.Button_external[i][BUTTON_COMMAND] = cmd;
+			input_status.request_button[i][BUTTON_CALL_UP] = up;
+			input_status.request_button[i][BUTTON_CALL_DOWN] = down;
+			input_status.request_button[i][BUTTON_COMMAND] = cmd;
 //			printf("\t\t\t\t%d \t%d \t%d \t%d\n", i,
 //			up,
 //			down,
@@ -280,8 +279,8 @@ void * light_driver_thread(){
 	return 0;
 }
 
-/* compare latest two polling of input status, if changed then issue an input event */
-/* the waiting one should wait for event_t to capture and parse relative event */
+/** @brief compare latest two polling of input status, if changed then issue an input event */
+/** the waiting one should wait for event_t to capture and parse relative event */
 void *input_event_dispatcher_thread(void * data){
 	data = NULL;
 	input_status_t last_input_status;
