@@ -464,7 +464,7 @@ void scheduling_test_new_ver2(int cur_floor, int dir,
 			get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
 }
 int main(void) {
-	task_pool_init(N_LENGTH_OF_TASK_POOL);
+	get_nearest_length_init(N_LENGTH_OF_TASK_POOL);
 	//test1();
 	//test3(7 , -1);
 //	test2();

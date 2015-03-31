@@ -6,9 +6,25 @@
  */
 
 #include "lift_task_queue.h"
-#define N_LENGTH_OF_TASK_POOL 4/* should be replaced by a config.h header file */
-static request_type_t task_pool_secret[N_LENGTH_OF_TASK_POOL] = {0};
-
+#include <malloc.h>
+#include <stdlib.h>
+static unsigned int N_LENGTH_OF_TASK_POOL = 4;
+static request_type_t *task_pool_secret = (void *)0;
+void default_task_pool_init( unsigned int length){
+	N_LENGTH_OF_TASK_POOL = length;
+	get_nearest_length_init(length);
+	task_pool_secret = malloc(length*sizeof(request_type_t));
+	if(!task_pool_secret){
+		perror("default_task_pool_init, bad malloc");
+		exit(-1);
+	}
+}
+void default_task_pool_destroy(void){
+	if(task_pool_secret){
+		free(task_pool_secret);
+	}
+	N_LENGTH_OF_TASK_POOL = 4;
+}
 void push_request(int floor, request_type_t type){
 	set_request_type(task_pool_secret+floor, type);
 }

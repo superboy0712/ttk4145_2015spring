@@ -64,6 +64,6 @@ int get_nearest_request_of_specified_downward(const request_type_t * const pool,
 	puts("get_nearest_request_of_specified_downward: no valid return");
 	return -1;
 }
-void task_pool_init(unsigned int length){
+void get_nearest_length_init(unsigned int length){
 	N_LENGTH_OF_TASK_POOL = length;
 }
