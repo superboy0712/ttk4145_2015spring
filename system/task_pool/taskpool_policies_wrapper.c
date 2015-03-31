@@ -1,5 +1,5 @@
 /*
- * taskpool_policies_wrapper.c
+ * @file taskpool_policies_wrapper.c
  *
  *  Created on: Mar 30, 2015
  *      Author: yulongb
@@ -8,8 +8,10 @@
 #include "lift_task_queue.h"
 #include <malloc.h>
 #include <stdlib.h>
+#include <pthread.h>
 static unsigned int N_LENGTH_OF_TASK_POOL = 4;
 static request_type_t *task_pool_secret = (void *)0;
+static pthread_mutex_t task_pool_lock = PTHREAD_MUTEX_INITIALIZER;
 void default_task_pool_init( unsigned int length){
 	N_LENGTH_OF_TASK_POOL = length;
 	get_nearest_length_init(length);
@@ -26,11 +28,15 @@ void default_task_pool_destroy(void){
 	N_LENGTH_OF_TASK_POOL = 4;
 }
 void push_request(int floor, request_type_t type){
+	pthread_mutex_lock(&task_pool_lock);
 	set_request_type(task_pool_secret+floor, type);
+	pthread_mutex_unlock(&task_pool_lock);
 }
 
 void pop_request(int floor, request_type_t type){
+	pthread_mutex_lock(&task_pool_lock);
 	clr_request_type(task_pool_secret+floor, type);
+	pthread_mutex_unlock(&task_pool_lock);
 }
 
 request_type_t get_request(int floor){
