@@ -121,7 +121,7 @@ void *elevator_running_controller_thread(void * data){
 #define milisec_block_wait_on_reached 150
 void car_moving_handler(void){
 	struct timespec time_to_wait;
-	struct timeval now;
+	struct timespec now;
 	int rc;
 	int dest_floor;
 	int cur_floor;
@@ -136,9 +136,10 @@ void car_moving_handler(void){
 			return;
 		}
 		/* time_to_wait for reached_event */
-		gettimeofday(&now,NULL);
+		clock_gettime(CLOCK_REALTIME, &now);
+		//gettimeofday(&now,NULL);
 		time_to_wait.tv_sec = now.tv_sec+0;
-		time_to_wait.tv_nsec = (now.tv_usec+1000UL*milisec_block_wait_on_reached)*1000UL;
+		time_to_wait.tv_nsec = now.tv_nsec+100000UL*milisec_block_wait_on_reached;
 		/**********************************/
 		pthread_mutex_lock(floor_reached_event_ptr->mutex);
 		printf("go to desired floor %d\n\n",dest_floor);
@@ -158,7 +159,7 @@ void car_moving_handler(void){
 			puts("time out, continue, update task if any");
 		}
 		else{
-			printf("cage_move_handler, unknown errono: %s", strerror(rc));
+			printf("cage_move_handler, unknown errono: %s\n\n", strerror(rc));
 		}
 		pthread_mutex_unlock(floor_reached_event_ptr->mutex);
 	}

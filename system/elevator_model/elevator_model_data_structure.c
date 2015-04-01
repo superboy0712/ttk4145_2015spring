@@ -116,8 +116,6 @@ void set_desired_floor(const int floor){
 void set_desired_floor_unsafe(const int floor){
 	desired_floor = floor;
 }
-int task_queue[N_FLOORS];
-int N_task_in_queue;
 static float current_floor_position = 0.0;
 void *input_polling_thread(void * data){
 	data = NULL;
@@ -136,10 +134,6 @@ void *input_polling_thread(void * data){
 //			up,
 //			down,
 //			cmd);
-		}
-		printf("task queue: ");
-		for(int i = 0; i < N_FLOORS; i++ ){
-			printf("%d ",task_queue[i]);
 		}
 //		printf(" top: %d", task_queue_top);
 		puts("");
