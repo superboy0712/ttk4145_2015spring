@@ -7,7 +7,8 @@ LDFLAGS = -lpthread -lcomedi -g -lm
 
 # list of sources
 ELEVSRC = ../drivers/elev.c ../drivers/io.c  elevator_controller_layer.c elevator_model_data_structure.c \
-			../task_pool/taskpool_policies_wrapper.c ../task_pool/lift_task_queue.c
+			../task_pool/taskpool_policies_wrapper.c ../task_pool/lift_task_queue.c\
+			./server/network_module_tcp.c ./server/network_module_udp.c ./server/new.c
 
 # program executable file name.
 TARGET = elevator_model

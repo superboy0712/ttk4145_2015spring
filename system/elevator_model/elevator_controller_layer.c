@@ -16,7 +16,7 @@
 #include "elevator_model_data_structure.h"
 #include "../task_pool/lift_task_queue.h"
 #include "../task_pool/taskpool_policies_wrapper.h"
-
+#include "server/new.h"
 request_type_t request_buffer[N_FLOORS] = { request_empty } ;/*!< to hold the parsed events, ready to send to the server*/
 /**
  * transition table from button type to request type
@@ -31,9 +31,14 @@ request_type_t to_request_type[3] = {
  * @brief wait for input events, parse button pushed events into request type
  * @param data
  */
+my_interface_t in_main_interface_DUMMY;
+my_interface_t* in_main_interface = &in_main_interface_DUMMY;
+char status_buffer[SEND_SIZE];
 void * request_button_events_parser_thread(void *data){
 	data = NULL;
 	input_status_t input_read;
+	unsigned int dest_floor;
+	request_type_t dest_type = request_empty;
 	while(1){
 		pthread_mutex_lock(input_event_ptr->mutex);
 		pthread_cond_wait(input_event_ptr->cv, input_event_ptr->mutex);
@@ -41,8 +46,17 @@ void * request_button_events_parser_thread(void *data){
 		for( int floor = 0; floor < N_FLOORS; floor++){
 			for( int button_type = 0; button_type < 3; button_type++){
 				if(input_read.request_button[floor][button_type] == 1){/* rising edge */
-					//set_request_type(request_buffer+floor, to_request_type[button_type]);
-					push_request(floor, to_request_type[button_type]);
+
+					if(button_type == BUTTON_COMMAND){
+						/* cmd pushed to local directly */
+						push_request(floor, to_request_type[button_type]);
+					}else{
+						/* pending for decision */
+						//set_request_type(request_buffer+floor, to_request_type[button_type]);
+					}
+					dest_floor = floor;
+					dest_type = to_request_type[button_type];
+					break;
 				}
 			}
 		}
@@ -50,6 +64,53 @@ void * request_button_events_parser_thread(void *data){
 		/**
 		 * TODO single elevator first, then include in the inquiry status, cost, send request.
 		 */
+		pthread_mutex_lock(&in_main_interface->interface_mutex);
+//		request_type_t type = request_empty;
+//		volatile int dest_floor = get_last_stable_floor();
+//		for( int floor = N_FLOORS-1; floor > 0; floor--){
+//			type = get_request_type(request_buffer+floor, request_up_dn_cmd);
+//			if(type!=request_empty){
+//				dest_floor = floor;
+//				break;
+//			}
+//		}
+
+		in_main_interface->order_floor = dest_floor;
+		strncpy(in_main_interface->interface_status_buffer, status_buffer, 13);
+		in_main_interface->order_direction = (dest_type & request_call_up)? 'U':'D';
+		in_main_interface->order_floor_flag = TRUE;
+		pthread_mutex_unlock(&in_main_interface->interface_mutex);
+
+
+		usleep(10 * MS);
+
+		pthread_mutex_lock(&in_main_interface->interface_mutex);
+	    int temp_order_floor = 0;
+		while (1) {
+
+			if (in_main_interface->order_floor_flag == FALSE) {
+				printf("Main:Order Flag Cleared by comm module....\n");
+				temp_order_floor = in_main_interface->order_floor;
+				pthread_mutex_unlock(&in_main_interface->interface_mutex);
+				break;
+			}
+
+			else {
+				pthread_mutex_unlock(&in_main_interface->interface_mutex);
+				usleep(50 * MS);
+			}
+		}
+
+		printf("Final order is %d -1 means someone else is doing\n",
+				temp_order_floor);
+		if(temp_order_floor!=-1){
+			/* I serve */
+			push_request(dest_floor, dest_type);
+		}else{
+			/* others serve */
+
+		}
+
 	}
 	return NULL;
 }
@@ -214,16 +275,11 @@ void open_wait_close(void){
  * request button light controller, controlling light on/off
  * according to the requests registered
  */
-int to_button_type[3] = {
-		[BUTTON_CALL_UP] = request_call_up,
-		[BUTTON_CALL_DOWN] = request_call_down,
-		[BUTTON_COMMAND] = request_call_cmd
-};
 void *request_button_light_controller_thread(void *data){
 	data = NULL;
 	light_status_t light_to_write;
 	while(1){
-		usleep(200000);
+		usleep(500000);
 		light_to_write = get_light_status();
 		for(int floor = 0; floor < N_FLOORS; floor++){
 			for (int button_type = 0; button_type < 3; ++button_type) {
@@ -234,11 +290,19 @@ void *request_button_light_controller_thread(void *data){
 		}
 		set_light_status(light_to_write);
 		default_task_pool_print();
+		/**
+		 *  UPDATE STATUS TO BUFFER
+		 */
+		pthread_mutex_lock(&in_main_interface->interface_mutex);
+			char DIR = (get_motor_last_none_zero_motor_moving_vector()>0)? 'U':'D';
+			sprintf(status_buffer,"MY_STATUS_%d_%c", get_last_stable_floor(), DIR);
+			strncpy(in_main_interface->interface_status_buffer, status_buffer, 13);
+		pthread_mutex_unlock(&in_main_interface->interface_mutex);
 	}
 	return NULL;
 }
 pthread_t request_button_light_controller_th, elevator_running_controller_th,
-		stop_button_controller_th, request_button_events_parser_th;
+		stop_button_controller_th, request_button_events_parser_th, init_thread;
 int main(int argc, char **argv) {
 	elevator_model_init(NULL);
 	default_task_pool_init(N_FLOORS);
@@ -258,6 +322,11 @@ int main(int argc, char **argv) {
 		exit(-1);
 	}
 	rc = pthread_create(&request_button_events_parser_th, NULL, request_button_events_parser_thread, NULL);
+	if (rc){
+		perror("pthread_create");
+		exit(-1);
+	}
+	rc = pthread_create(&init_thread, NULL, initialzie_function, in_main_interface);
 	if (rc){
 		perror("pthread_create");
 		exit(-1);
