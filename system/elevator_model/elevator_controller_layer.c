@@ -170,7 +170,6 @@ BEGIN:		/* */
 				clock_gettime(CLOCK_REALTIME, &now);
 				time_to_wait.tv_sec = now.tv_sec+1;
 				time_to_wait.tv_nsec = now.tv_nsec;
-				//printf("to wait sec:%ld, nsec:%ld\n",time_to_wait.tv_sec, time_to_wait.tv_nsec);
 				/**********************************/
 		rc = pthread_cond_timedwait(floor_reached_event_ptr->cv, floor_reached_event_ptr->mutex, &time_to_wait );
 		if(rc == 0){
