@@ -118,7 +118,7 @@ void *elevator_running_controller_thread(void * data){
 	}
 	return NULL;
 }
-#define milisec_block_wait_on_reached 150
+#define milisec_block_wait_on_reached 500
 void car_moving_handler(void){
 	struct timespec time_to_wait;
 	struct timespec now;
@@ -126,20 +126,21 @@ void car_moving_handler(void){
 	int dest_floor;
 	int cur_floor;
 	float cur_pos = get_current_floor_position();
-	int dir = get_motor_last_none_zero_motor_moving_vector();
+	int dir = 1;//get_motor_last_none_zero_motor_moving_vector();
 	int failed_count = 0;
 	request_type_t type = request_empty;
 	while(1){
 BEGIN:		/* */
 		cur_pos = get_current_floor_position();
-		cur_floor = get_light_status().floor_indicator_light;
-		dir = get_motor_last_none_zero_motor_moving_vector();
+		cur_floor = get_last_stable_floor();
+		int vec = get_motor_moving_vector();
+		if(vec){dir = vec;}
 		if(dir == 0) dir = 1;
 		if(cur_floor == N_FLOORS-1) dir = -1;
 		if(cur_floor == 0) dir = 1;
 		if(cur_pos - cur_floor > 0.1){
 			cur_floor++;
-		} else if(cur_pos - cur_floor < 0.1){
+		} else if(cur_pos - cur_floor < -0.1){
 			cur_floor--;
 		}
 		dest_floor = get_optimal_req(cur_floor, &dir, &type);
@@ -150,7 +151,7 @@ BEGIN:		/* */
 			}
 			failed_count++;
 			puts("fetch empty task in cage_move_handler, try inverse direction!");
-			dir = -dir;
+			//dir = -dir;
 			goto BEGIN;
 		}
 
@@ -158,30 +159,41 @@ BEGIN:		/* */
 		printf("go to desired floor %d\n\n",dest_floor);
 		set_desired_floor_unsafe(dest_floor);
 				/* time_to_wait for reached_event */
+//				clock_gettime(CLOCK_REALTIME, &now);
+//				printf("time sec:%ld, nsec:%ld\n",now.tv_sec, now.tv_nsec);
+//
+//				//gettimeofday(&now,NULL);
+//				time_t delta_sec = (now.tv_nsec+1000000UL*milisec_block_wait_on_reached)/1000000000UL;
+//				unsigned long delta_nsec = (now.tv_nsec+1000000UL*milisec_block_wait_on_reached)%1000000000UL;
+//				time_to_wait.tv_sec = now.tv_sec+delta_sec;
+//				time_to_wait.tv_nsec = now.tv_nsec+delta_nsec;
 				clock_gettime(CLOCK_REALTIME, &now);
-				//gettimeofday(&now,NULL);
-				time_to_wait.tv_sec = now.tv_sec+0;
-				time_to_wait.tv_nsec = now.tv_nsec+1000000UL*milisec_block_wait_on_reached;
+				time_to_wait.tv_sec = now.tv_sec+1;
+				time_to_wait.tv_nsec = now.tv_nsec;
+				//printf("to wait sec:%ld, nsec:%ld\n",time_to_wait.tv_sec, time_to_wait.tv_nsec);
 				/**********************************/
 		rc = pthread_cond_timedwait(floor_reached_event_ptr->cv, floor_reached_event_ptr->mutex, &time_to_wait );
 		if(rc == 0){
-			printf("reached event caught by cage_move_handler.\n");
-
-			if(dest_floor != get_light_status().floor_indicator_light)
-				puts("not at the desired floor. sth wrong!");
-
-			pop_request(dest_floor, type);
 			pthread_mutex_unlock(floor_reached_event_ptr->mutex);
+			printf("reached event caught by cage_move_handler.\n");
+			if(dest_floor != get_light_status().floor_indicator_light){
+				puts("not at the desired floor. sth wrong!");
+			}
+			pop_request(dest_floor, type);
+
 			return; /* here's the exit! need to unlock before exit */
 		}
 		else if (rc == ETIMEDOUT){
+			pthread_mutex_unlock(floor_reached_event_ptr->mutex);
 			puts("time out, continue, update task if any");
 		}
 		else{
+			pthread_mutex_unlock(floor_reached_event_ptr->mutex);
 			printf("cage_move_handler, unknown errono: %s\n\n", strerror(rc));
-			usleep(150000UL);
+			printf("to wait sec:%ld, nsec:%ld\n",time_to_wait.tv_sec, time_to_wait.tv_nsec);
+			usleep(milisec_block_wait_on_reached*1000UL);
 		}
-		pthread_mutex_unlock(floor_reached_event_ptr->mutex);
+
 	}
 }
 void open_wait_close(void){

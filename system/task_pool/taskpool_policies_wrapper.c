@@ -126,9 +126,12 @@ static unsigned int get_nr_of_req(const request_type_t * pool, unsigned int leng
 	return ret;
 }
 int get_optimal_req(int from, int *dir, request_type_t *ret_type){
-	return get_optimal_request_from_specified_on_search_direction(
+	pthread_mutex_lock(&task_pool_lock);
+	int rc = get_optimal_request_from_specified_on_search_direction(
 			task_pool_secret, from, dir,
 			ret_type);
+	pthread_mutex_unlock(&task_pool_lock);
+	return rc;
 }
 unsigned int get_req_count(void){
 	return get_nr_of_req(task_pool_secret, N_LENGTH_OF_TASK_POOL);
