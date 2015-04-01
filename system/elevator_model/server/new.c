@@ -1197,7 +1197,7 @@ void* accept_order_function(void *temp_struct){
 							temp_received_floor=atoi(&temp_floor_in_str);
 
 							/*Debug Part*/
-						printf("\t\t\tAccept Order Thread: Order Received; Floor is %d from %s\n.",temp_received_floor,local_client[loop_var].my_ip);
+						printf("\t\t\tAccept Order Thread: Order Received; message is %s Floor is %d from %s\n.",local_client[loop_var].buf_read,temp_received_floor,local_client[loop_var].my_ip);
 
 							pthread_mutex_lock(&order_thread->interface_mutex);
 

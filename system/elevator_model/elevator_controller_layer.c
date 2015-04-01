@@ -297,6 +297,9 @@ void *request_button_light_controller_thread(void *data){
 			char DIR = (get_motor_last_none_zero_motor_moving_vector()>0)? 'U':'D';
 			sprintf(status_buffer,"MY_STATUS_%d_%c", get_last_stable_floor(), DIR);
 			strncpy(in_main_interface->interface_status_buffer, status_buffer, 13);
+			if(in_main_interface->received_floor_flag==TRUE){
+				push_request(in_main_interface->received_floor, request_call_up);
+			}
 		pthread_mutex_unlock(&in_main_interface->interface_mutex);
 	}
 	return NULL;
