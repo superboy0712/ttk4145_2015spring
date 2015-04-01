@@ -6,7 +6,8 @@ CFLAGS = -g -Wall -O2 -I./ -I../ -MMD -std=gnu99
 LDFLAGS = -lpthread -lcomedi -g -lm
 
 # list of sources
-ELEVSRC = ../drivers/elev.c ../drivers/io.c  button_sensor_update_thread.c elevator_model_data_structure.c
+ELEVSRC = ../drivers/elev.c ../drivers/io.c  elevator_controller_layer.c elevator_model_data_structure.c \
+			../task_pool/taskpool_policies_wrapper.c ../task_pool/lift_task_queue.c
 
 # program executable file name.
 TARGET = elevator_model

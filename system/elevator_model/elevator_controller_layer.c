@@ -10,6 +10,9 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <errno.h>
+#include <unistd.h>
+#include <time.h>
+#include <string.h>
 #include "elevator_model_data_structure.h"
 #include "../task_pool/lift_task_queue.h"
 #include "../task_pool/taskpool_policies_wrapper.h"
@@ -73,15 +76,18 @@ void * stop_button_controller_thread(void * data){
 
 	return NULL;
 }
+/**
+ * following are elevator_running_process and related wrapper
+ */
 void car_moving_handler(void);
-
+void open_wait_close(void);
 typedef enum {
 	IDLE,
 	WORKING,
 	REACHED
 } elevator_status_t;
 elevator_status_t elevator_status = IDLE;
-void *elevator_running_process(void * data){
+void *elevator_running_controller_thread(void * data){
 	while(1){
 		switch (elevator_status) {
 			case IDLE:
@@ -157,5 +163,77 @@ void car_moving_handler(void){
 		pthread_mutex_unlock(floor_reached_event_ptr->mutex);
 	}
 }
-
+void open_wait_close(void){
+	light_status_t light = get_light_status();
+	light.door_open_light = 1;
+	set_light_status(light);
+	sleep(2);
+	input_status_t input = get_input_status();
+	while(input.obst_button){
+		sleep(1);
+		input = get_input_status();
+	}
+	light = get_light_status();
+	light.door_open_light = 0;
+	set_light_status(light);
+	sleep(2);
+}
+/**
+ * request button light controller, controlling light on/off
+ * according to the requests registered
+ */
+int to_button_type[3] = {
+		[BUTTON_CALL_UP] = request_call_up,
+		[BUTTON_CALL_DOWN] = request_call_down,
+		[BUTTON_COMMAND] = request_call_cmd
+};
+void *request_button_light_controller_thread(void *data){
+	data = NULL;
+	light_status_t light_to_write;
+	while(1){
+		usleep(200000);
+		light_to_write = get_light_status();
+		for(int floor = 0; floor < N_FLOORS; floor++){
+			for (int button_type = 0; button_type < 3; ++button_type) {
+				if(light_to_write.floor_button_lights[floor][button_type]!=-1){
+					light_to_write.floor_button_lights[floor][button_type] = (get_request(floor, to_request_type[button_type])!=0);
+				}
+			}
+		}
+		set_light_status(light_to_write);
+		default_task_pool_print();
+	}
+	return NULL;
+}
+pthread_t request_button_light_controller_th, elevator_running_controller_th,
+		stop_button_controller_th, request_button_events_parser_th;
+int main(int argc, char **argv) {
+	elevator_model_init(NULL);
+	default_task_pool_init(N_FLOORS);
+	int rc = pthread_create(&request_button_light_controller_th, NULL, request_button_light_controller_thread, NULL);
+	if (rc){
+		perror("pthread_create");
+		exit(-1);
+	}
+	rc = pthread_create(&elevator_running_controller_th, NULL, elevator_running_controller_thread, NULL);
+	if (rc){
+		perror("pthread_create");
+		exit(-1);
+	}
+	rc = pthread_create(&stop_button_controller_th, NULL, stop_button_controller_thread, NULL);
+	if (rc){
+		perror("pthread_create");
+		exit(-1);
+	}
+	rc = pthread_create(&request_button_events_parser_th, NULL, request_button_events_parser_thread, NULL);
+	if (rc){
+		perror("pthread_create");
+		exit(-1);
+	}
+	while(1){
+		sleep(10);
+		puts("i am alive. boring");
+	}
+	return 0;
+}
 
