@@ -151,7 +151,7 @@ BEGIN:		/* */
 			}
 			failed_count++;
 			puts("fetch empty task in cage_move_handler, try inverse direction!");
-			//dir = -dir;
+			dir = -dir;
 			goto BEGIN;
 		}
 
