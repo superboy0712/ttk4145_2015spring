@@ -16,6 +16,7 @@ void default_task_pool_init( unsigned int length){
 	N_LENGTH_OF_TASK_POOL = length;
 	get_nearest_length_init(length);
 	task_pool_secret = malloc(length*sizeof(request_type_t));
+	memset(task_pool_secret, 0, length*sizeof(request_type_t));
 	if(!task_pool_secret){
 		perror("default_task_pool_init, bad malloc");
 		exit(-1);
@@ -26,6 +27,9 @@ void default_task_pool_destroy(void){
 		free(task_pool_secret);
 	}
 	N_LENGTH_OF_TASK_POOL = 4;
+}
+void default_task_pool_print(void){
+	print_request_pool(task_pool_secret, N_LENGTH_OF_TASK_POOL);
 }
 void push_request(int floor, request_type_t type){
 	pthread_mutex_lock(&task_pool_lock);
@@ -39,8 +43,8 @@ void pop_request(int floor, request_type_t type){
 	pthread_mutex_unlock(&task_pool_lock);
 }
 
-request_type_t get_request(int floor){
-	return get_request_type(task_pool_secret+floor, request_call_up|request_call_down|request_call_cmd);
+request_type_t get_request(int floor, request_type_t type){
+	return get_request_type(task_pool_secret+floor, type);
 }
 static int get_optimal_request_from_specified_on_search_direction(
 		const request_type_t * const pool, int specified, int *direction,

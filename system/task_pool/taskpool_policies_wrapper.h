@@ -21,8 +21,9 @@
 extern int get_optimal_req(int from, int *dir, request_type_t *ret_type);
 extern void push_request(int floor, request_type_t type);
 extern void pop_request(int floor, request_type_t type);
-extern request_type_t get_request(int floor);
+extern request_type_t get_request(int floor, request_type_t type);
 extern unsigned int get_req_count(void);
 extern void default_task_pool_init( unsigned int length);
 extern void default_task_pool_destroy(void);
+extern void default_task_pool_print(void);
 #endif /* SRC_TASKPOOL_POLICIES_WRAPPER_H_ */
