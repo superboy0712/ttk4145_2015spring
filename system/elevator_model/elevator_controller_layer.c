@@ -118,7 +118,7 @@ void *elevator_running_controller_thread(void * data){
 	}
 	return NULL;
 }
-#define milisec_block_wait_on_reached 500
+#define milisec_block_wait_on_reached 200
 void car_moving_handler(void){
 	struct timespec time_to_wait;
 	struct timespec now;
@@ -151,7 +151,7 @@ BEGIN:		/* */
 			}
 			failed_count++;
 			puts("fetch empty task in cage_move_handler, try inverse direction!");
-			//dir = -dir;
+			dir = -dir;/* starvation in either direction */
 			goto BEGIN;
 		}
 
