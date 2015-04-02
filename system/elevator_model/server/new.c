@@ -80,7 +80,7 @@ void* discover_udp_function()
 			if(send_bytes_remote<0){
 				perror("UDP Discover Thread: Send Error:");		
 			}
-		//usleep(50*MS);		//sleep for 50ms
+		usleep(100*MS);		//sleep for 50ms
 
 				recv_bytes=recvfrom(sock_desc_local,buf_recv,SEND_SIZE, 0,(struct sockaddr *)&remoteaddr, &addrlen);
 
@@ -1103,7 +1103,7 @@ void* accept_order_function(void *temp_struct){
 
 	char 	my_IP[INET6_ADDRSTRLEN];
 	char 	temp_buf_ack[SEND_SIZE];
-	char	temp_floor_in_str;
+	char	temp_floor_in_str[2];
 
 	strncpy(temp_buf_ack, "ACK_MSG", 7);
 
@@ -1193,7 +1193,8 @@ void* accept_order_function(void *temp_struct){
 								///////////////////
 			
 							subString(local_client[loop_var].buf_read, 6, 1, &temp_floor_in_str);
-
+							printf("%s", temp_floor_in_str);
+							temp_floor_in_str[1] = '\0';
 							temp_received_floor=atoi(&temp_floor_in_str);
 
 							/*Debug Part*/

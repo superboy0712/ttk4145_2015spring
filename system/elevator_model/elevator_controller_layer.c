@@ -315,6 +315,7 @@ void *request_button_light_controller_thread(void *data){
 			if(in_main_interface->received_floor_flag==TRUE){
 				push_request(in_main_interface->received_floor, request_call_up);
 			}
+			in_main_interface->received_floor_flag=FALSE;
 		pthread_mutex_unlock(&in_main_interface->interface_mutex);
 	}
 	return NULL;
