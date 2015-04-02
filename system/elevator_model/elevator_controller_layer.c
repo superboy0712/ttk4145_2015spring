@@ -40,6 +40,7 @@ void * request_button_events_parser_thread(void *data){
 	unsigned int dest_floor;
 	request_type_t dest_type = request_empty;
 	while(1){
+		BEGIN:
 		pthread_mutex_lock(input_event_ptr->mutex);
 		pthread_cond_wait(input_event_ptr->cv, input_event_ptr->mutex);
 		input_read = get_input_status_unsafe();
@@ -50,6 +51,8 @@ void * request_button_events_parser_thread(void *data){
 					if(button_type == BUTTON_COMMAND){
 						/* cmd pushed to local directly */
 						push_request(floor, to_request_type[button_type]);
+						pthread_mutex_unlock(input_event_ptr->mutex);
+						goto BEGIN;
 					}else{
 						/* pending for decision */
 						//set_request_type(request_buffer+floor, to_request_type[button_type]);
