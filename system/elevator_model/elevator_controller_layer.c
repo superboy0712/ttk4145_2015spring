@@ -133,8 +133,8 @@ void car_moving_handler(void){
 BEGIN:		/* */
 		cur_pos = get_current_floor_position();
 		cur_floor = get_last_stable_floor();
-		int vec = get_motor_moving_vector();
-		if(vec){dir = vec;}
+		dir = get_motor_last_none_zero_motor_moving_vector();
+		//if(vec){dir = vec;}
 		if(dir == 0) dir = 1;
 		if(cur_floor == N_FLOORS-1) dir = -1;
 		if(cur_floor == 0) dir = 1;
@@ -152,6 +152,7 @@ BEGIN:		/* */
 			failed_count++;
 			puts("fetch empty task in cage_move_handler, try inverse direction!");
 			dir = -dir;/* starvation in either direction */
+			//if(get_motor_last_none_zero_motor_moving_vector()<0) dir=-1;
 			goto BEGIN;
 		}
 
