@@ -100,7 +100,7 @@ void * request_button_events_parser_thread(void *data){
 
 			else {
 				pthread_mutex_unlock(&in_main_interface->interface_mutex);
-				usleep(50 * MS);
+				usleep(10 * MS);
 			}
 		}
 
@@ -294,7 +294,7 @@ void *request_button_light_controller_thread(void *data){
 	data = NULL;
 	light_status_t light_to_write;
 	while(1){
-		usleep(500000);
+		usleep(75000);
 		light_to_write = get_light_status();
 		for(int floor = 0; floor < N_FLOORS; floor++){
 			for (int button_type = 0; button_type < 3; ++button_type) {
@@ -304,7 +304,7 @@ void *request_button_light_controller_thread(void *data){
 			}
 		}
 		set_light_status(light_to_write);
-		default_task_pool_print();
+		//default_task_pool_print();
 		/**
 		 *  UPDATE STATUS TO BUFFER
 		 */
