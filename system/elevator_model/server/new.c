@@ -80,7 +80,7 @@ void* discover_udp_function()
 			if(send_bytes_remote<0){
 				perror("UDP Discover Thread: Send Error:");		
 			}
-		usleep(100*MS);		//sleep for 50ms
+		//usleep(50*MS);		//sleep for 50ms
 
 				recv_bytes=recvfrom(sock_desc_local,buf_recv,SEND_SIZE, 0,(struct sockaddr *)&remoteaddr, &addrlen);
 
@@ -763,6 +763,7 @@ void* resolve_order_function(void* temp_struct){
 							
 											//extract  MY OWN status at location zero of all arrays.....
 								subString(my_status, 10, 1, &my_cost_struct.temp_floor);
+								my_cost_struct.temp_floor[1] = '\0';
 								my_cost_struct.floor[0]=atoi(&my_cost_struct.temp_floor);									
 								subString(my_status, 12, 1, &my_cost_struct.direction[0]);
 								my_cost_struct.index[0]=1;
@@ -779,6 +780,7 @@ void* resolve_order_function(void* temp_struct){
 
 											//extract floors...
 								subString(local_client[loop_var].buf_read, 10, 1, &my_cost_struct.temp_floor);
+								my_cost_struct.temp_floor[1] = '\0';
 								my_cost_struct.floor[index]=atoi(&my_cost_struct.temp_floor);
 												//extract directions...
 								subString(local_client[loop_var].buf_read, 12, 1, &my_cost_struct.direction[index]);
@@ -802,7 +804,7 @@ void* resolve_order_function(void* temp_struct){
 
 						if(desired_index!=0){
 							
-							sprintf(buf_send_order, "DOJOB_%d", temp_order_floor);
+							sprintf(buf_send_order, "DOJOB_%d_%c", temp_order_floor,temp_order_dir);
 							temp_send_bytes=send(local_client[desired_index-1].sock_order, buf_send_order, SEND_SIZE, 0);		//SOCK_ORDER!!!
 							usleep(50*MS);		//maybe some delay but should not be, ideally
 							printf("\t\t\tResolve Order Thread:Dispatching job %s to client %s order is %d\n",buf_send_order,local_client[desired_index-1].my_ip,temp_order_floor);
@@ -1098,6 +1100,7 @@ void* accept_order_function(void *temp_struct){
 	int 	recv_bytes=0;
 	int 	send_bytes=0;
 	int 	temp_received_floor=0;
+	char 	temp_received_direction[2];
 	int 	temp_flag_read=0;
 	int 	temp_flag_array[N_CLIENT];
 
@@ -1192,10 +1195,13 @@ void* accept_order_function(void *temp_struct){
 								else {printf("\t\t\tAccept Order Thread:WRONG Message for status from %s\n",local_client[loop_var].my_ip);}
 								///////////////////
 			
-							subString(local_client[loop_var].buf_read, 6, 1, &temp_floor_in_str);
+							subString(local_client[loop_var].buf_read, 6, 1, temp_floor_in_str);
 							printf("%s", temp_floor_in_str);
 							temp_floor_in_str[1] = '\0';
-							temp_received_floor=atoi(&temp_floor_in_str);
+							temp_received_floor=atoi(temp_floor_in_str);
+
+							subString(local_client[loop_var].buf_read, 8, 1, temp_received_direction);
+							temp_received_direction[1] = '\0';
 
 							/*Debug Part*/
 						printf("\t\t\tAccept Order Thread: Order Received; message is %s Floor is %d from %s\n.",local_client[loop_var].buf_read,temp_received_floor,local_client[loop_var].my_ip);
@@ -1203,6 +1209,7 @@ void* accept_order_function(void *temp_struct){
 							pthread_mutex_lock(&order_thread->interface_mutex);
 
 							order_thread->received_floor=temp_received_floor;
+							order_thread->received_direction=temp_received_direction[0];
 							order_thread->received_floor_flag=TRUE;
 
 							pthread_mutex_unlock(&order_thread->interface_mutex);
@@ -1388,9 +1395,12 @@ pthread_join(resolve_order_thread, NULL);
 	int cost_function(struct cost_param my_cost_struct, int temp_order_floor, char temp_order_dircetion){
 
 	int i=0;
-	int minimum, location;
+	int minimum, location = 0;
 	int temp_diff[N_CLIENT];
-	
+	int minimum_one_s_array_indexes[N_CLIENT];/* several ones are minimum */
+	int mosai_index = 0;
+	int the_opt_idx = 0;
+	memset(minimum_one_s_array_indexes, 0xfff, N_CLIENT*sizeof(int));
 		for(i=0; i<my_cost_struct.max_index; i++)	{
 			temp_diff[i]=temp_order_floor-my_cost_struct.floor[i];
 				if(temp_diff[i]<0){temp_diff[i]=(-1*temp_diff[i]);}		
@@ -1400,17 +1410,35 @@ pthread_join(resolve_order_thread, NULL);
 	 
 		for ( i = 1 ; i <my_cost_struct.max_index ; i++ ) 
 		{
-		    if ( temp_diff[i] < minimum ) 
+		    if ( temp_diff[i] < minimum )
 		    {
 		       minimum = temp_diff[i];
-		       location = i+1;
+		       //location = i+1;
+		       the_opt_idx = i;
 		    }
 		} 
 
-		printf("From Cost Fucntion, Elements are %d %d %d \n",temp_diff[0],temp_diff[1],temp_diff[2]);
-		printf("From Cost Fucntion, min is %d and index is %d \n",minimum,location);		
-		 if(location==0){return 0;}
-		return my_cost_struct.index[location-1];
+		for (int i = 1; i < my_cost_struct.max_index; ++i) {
+			if (temp_diff[i] == minimum){
+				minimum_one_s_array_indexes[mosai_index] = i;
+				mosai_index++;
+			}
+		}
+
+		for (int i = 0; i < mosai_index; ++i) {
+			int temp = minimum_one_s_array_indexes[mosai_index];
+			if(temp_order_dircetion == my_cost_struct.direction[temp]){
+				the_opt_idx = temp;
+				/* the first matched direction wins */
+				break;
+			}
+
+		}
+		//location = the_opt_idx + 1;
+		if(the_opt_idx==0){return 0;}
+
+		 printf("From Cost Fucntion, min is %d and index is %d, direction is %c \n",minimum, the_opt_idx, my_cost_struct.direction[the_opt_idx]);
+		return my_cost_struct.index[the_opt_idx];
 	}
 
 

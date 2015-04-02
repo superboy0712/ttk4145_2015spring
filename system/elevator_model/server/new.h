@@ -18,7 +18,7 @@
 #define TRUE 			1
 #define FALSE 			0
 #define MS				1000
-#define DELAY			200
+#define DELAY			150
 
 //Macros for external jobs flag
 
@@ -81,7 +81,7 @@ struct cost_param {
 
 	int index[N_CLIENT];
 
-	char temp_floor;
+	char temp_floor[2];
 
 	int max_index;
 
@@ -96,6 +96,8 @@ typedef struct {
 	char interface_status_buffer[SEND_SIZE];//ONLY FOR STRINGS WITH FORMAT MY_STATUS_X_Y		X=Floor, Y=Directio
 
 	int received_floor;							//accept_order_thread
+
+	char received_direction;
 
 	int received_floor_flag;					//accept_order_thread
 
