@@ -151,7 +151,7 @@ BEGIN:		/* */
 			}
 			failed_count++;
 			puts("fetch empty task in cage_move_handler, try inverse direction!");
-			dir = -dir;/* starvation in either direction */
+			//dir = -dir;/* starvation in either direction */
 			//if(get_motor_last_none_zero_motor_moving_vector()<0) dir=-1;
 			goto BEGIN;
 		}
