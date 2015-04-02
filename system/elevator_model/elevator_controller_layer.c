@@ -190,33 +190,42 @@ void car_moving_handler(void){
 	int dest_floor;
 	int cur_floor;
 	float cur_pos = get_current_floor_position();
-	int dir = 1;//get_motor_last_none_zero_motor_moving_vector();
+	int dir = get_motor_last_none_zero_motor_moving_vector();//get_motor_last_none_zero_motor_moving_vector();
 	int failed_count = 0;
+	int temp_dir;
 	request_type_t type = request_empty;
 	while(1){
-BEGIN:		/* */
+		/* */
+	BEGIN:
 		cur_pos = get_current_floor_position();
 		cur_floor = get_last_stable_floor();
-		dir = get_motor_last_none_zero_motor_moving_vector();
-		//if(vec){dir = vec;}
-		if(dir == 0) dir = 1;
-		if(cur_floor == N_FLOORS-1) dir = -1;
-		if(cur_floor == 0) dir = 1;
+		if(dir == 0) {
+			puts("dir equals zero!");
+			dir = 1;
+		}
+
 		if(cur_pos - cur_floor > 0.1){
 			cur_floor++;
 		} else if(cur_pos - cur_floor < -0.1){
 			cur_floor--;
 		}
+		temp_dir = dir;
 		dest_floor = get_optimal_req(cur_floor, &dir, &type);
 		if(dest_floor == -1){
 			if(failed_count > 4){
 				puts("fetch empty task 5 times in cage_move_handler, that shouln't happen!");
 				return;
 			}
+			else if(2<= failed_count && failed_count<=4){
+					if(temp_dir == dir){
+						dir = -dir;
+					}
+					puts("fetch empty task in cage_move_handler, try inverse direction!");
+			}
+			if(cur_floor == N_FLOORS-1) dir = -1;
+			if(cur_floor == 0) dir = 1;
 			failed_count++;
-			puts("fetch empty task in cage_move_handler, try inverse direction!");
-			dir = -dir;/* starvation in either direction */
-			//if(get_motor_last_none_zero_motor_moving_vector()<0) dir=-1;
+
 			goto BEGIN;
 		}
 
@@ -245,10 +254,6 @@ BEGIN:		/* */
 			if(dest_floor != temp){
 				puts("not at the desired floor. sth wrong!");
 			}
-			if(get_motor_last_none_zero_motor_moving_vector()>0) type = request_up_n_cmd;
-			if(get_motor_last_none_zero_motor_moving_vector()<0) type = request_dn_n_cmd;
-			if(dest_floor==N_FLOORS-1) type = request_dn_n_cmd;
-			if(dest_floor==0) type = request_up_n_cmd;
 			pop_request(dest_floor, type);
 
 			return; /* here's the exit! need to unlock before exit */
