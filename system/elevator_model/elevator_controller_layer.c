@@ -179,7 +179,7 @@ void *elevator_running_controller_thread(void * data){
 	}
 	return NULL;
 }
-#define milisec_block_wait_on_reached 500
+#define milisec_block_wait_on_reached 200
 void car_moving_handler(void){
 	struct timespec time_to_wait;
 	struct timespec now;
@@ -194,8 +194,8 @@ void car_moving_handler(void){
 BEGIN:		/* */
 		cur_pos = get_current_floor_position();
 		cur_floor = get_last_stable_floor();
-		int vec = get_motor_moving_vector();
-		if(vec){dir = vec;}
+		dir = get_motor_last_none_zero_motor_moving_vector();
+		//if(vec){dir = vec;}
 		if(dir == 0) dir = 1;
 		if(cur_floor == N_FLOORS-1) dir = -1;
 		if(cur_floor == 0) dir = 1;
@@ -212,7 +212,8 @@ BEGIN:		/* */
 			}
 			failed_count++;
 			puts("fetch empty task in cage_move_handler, try inverse direction!");
-			dir = -dir;
+			dir = -dir;/* starvation in either direction */
+			//if(get_motor_last_none_zero_motor_moving_vector()<0) dir=-1;
 			goto BEGIN;
 		}
 
@@ -236,9 +237,15 @@ BEGIN:		/* */
 		if(rc == 0){
 			pthread_mutex_unlock(floor_reached_event_ptr->mutex);
 			printf("reached event caught by cage_move_handler.\n");
-			if(dest_floor != get_light_status().floor_indicator_light){
+			usleep(100000);
+			volatile int temp = elev_get_floor_sensor_signal();
+			if(dest_floor != temp){
 				puts("not at the desired floor. sth wrong!");
 			}
+			if(get_motor_last_none_zero_motor_moving_vector()>0) type = request_up_n_cmd;
+			if(get_motor_last_none_zero_motor_moving_vector()<0) type = request_dn_n_cmd;
+			if(dest_floor==N_FLOORS-1) type = request_dn_n_cmd;
+			if(dest_floor==0) type = request_up_n_cmd;
 			pop_request(dest_floor, type);
 
 			return; /* here's the exit! need to unlock before exit */
