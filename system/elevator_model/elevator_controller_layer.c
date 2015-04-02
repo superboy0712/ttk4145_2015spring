@@ -175,9 +175,15 @@ BEGIN:		/* */
 		if(rc == 0){
 			pthread_mutex_unlock(floor_reached_event_ptr->mutex);
 			printf("reached event caught by cage_move_handler.\n");
-			if(dest_floor != get_light_status().floor_indicator_light){
+			usleep(100000);
+			volatile int temp = elev_get_floor_sensor_signal();
+			if(dest_floor != temp){
 				puts("not at the desired floor. sth wrong!");
 			}
+			if(get_motor_last_none_zero_motor_moving_vector()>0) type = request_up_n_cmd;
+			if(get_motor_last_none_zero_motor_moving_vector()<0) type = request_dn_n_cmd;
+			if(dest_floor==N_FLOORS-1) type = request_dn_n_cmd;
+			if(dest_floor==0) type = request_up_n_cmd;
 			pop_request(dest_floor, type);
 
 			return; /* here's the exit! need to unlock before exit */
