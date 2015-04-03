@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/time.h>
 #include <string.h>
 #include "elevator_model_data_structure.h"
 #include "../task_pool/lift_task_queue.h"
@@ -68,15 +69,6 @@ void * request_button_events_parser_thread(void *data){
 		 * TODO single elevator first, then include in the inquiry status, cost, send request.
 		 */
 		pthread_mutex_lock(&in_main_interface->interface_mutex);
-//		request_type_t type = request_empty;
-//		volatile int dest_floor = get_last_stable_floor();
-//		for( int floor = N_FLOORS-1; floor > 0; floor--){
-//			type = get_request_type(request_buffer+floor, request_up_dn_cmd);
-//			if(type!=request_empty){
-//				dest_floor = floor;
-//				break;
-//			}
-//		}
 
 		in_main_interface->order_floor = dest_floor;
 		strncpy(in_main_interface->interface_status_buffer, status_buffer, 13);
@@ -141,7 +133,7 @@ void * stop_button_controller_thread(void * data){
 	return NULL;
 }
 /**
- * following are elevator_running_process and related wrapper
+ * following are elevator_running_process and related wrappers
  */
 void car_moving_handler(void);
 void open_wait_close(void);
@@ -196,7 +188,7 @@ void car_moving_handler(void){
 	request_type_t type = request_empty;
 	while(1){
 		/* */
-	BEGIN:
+	ERROR_RETRY:
 		cur_pos = get_current_floor_position();
 		cur_floor = get_last_stable_floor();
 		if(dir == 0) {
@@ -211,10 +203,13 @@ void car_moving_handler(void){
 		}
 		temp_dir = dir;
 		dest_floor = get_optimal_req(cur_floor, &dir, &type);
+		/**
+		 *  error handling
+		 */
 		if(dest_floor == -1){
 			if(failed_count > 4){
 				puts("fetch empty task 5 times in cage_move_handler, that shouln't happen!");
-				return;
+				goto ERROR_EXIT;
 			}
 			else if(2<= failed_count && failed_count<=4){
 					if(temp_dir == dir){
@@ -226,17 +221,13 @@ void car_moving_handler(void){
 			if(cur_floor == 0) dir = 1;
 			failed_count++;
 
-			goto BEGIN;
+			goto ERROR_RETRY;
 		}
 
 		pthread_mutex_lock(floor_reached_event_ptr->mutex);
 		printf("go to desired floor %d\n\n",dest_floor);
 		set_desired_floor_unsafe(dest_floor);
-				/* time_to_wait for reached_event */
-//				clock_gettime(CLOCK_REALTIME, &now);
-//				printf("time sec:%ld, nsec:%ld\n",now.tv_sec, now.tv_nsec);
-//
-//				//gettimeofday(&now,NULL);
+				/* time_to_wait on reached_event */
 //				time_t delta_sec = (now.tv_nsec+1000000UL*milisec_block_wait_on_reached)/1000000000UL;
 //				unsigned long delta_nsec = (now.tv_nsec+1000000UL*milisec_block_wait_on_reached)%1000000000UL;
 //				time_to_wait.tv_sec = now.tv_sec+delta_sec;
@@ -256,7 +247,7 @@ void car_moving_handler(void){
 			}
 			pop_request(dest_floor, type);
 
-			return; /* here's the exit! need to unlock before exit */
+			goto EXIT; /* here's the exit! need to unlock before exit */
 		}
 		else if (rc == ETIMEDOUT){
 			pthread_mutex_unlock(floor_reached_event_ptr->mutex);
@@ -270,6 +261,12 @@ void car_moving_handler(void){
 		}
 
 	}
+/**
+ * merge all exits
+ */
+ERROR_EXIT:
+EXIT:
+	return;
 }
 void open_wait_close(void){
 	light_status_t light = get_light_status();
