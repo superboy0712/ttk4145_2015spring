@@ -23,6 +23,9 @@
 extern pthread_mutex_t signal_master_dead_mtx;
 extern pthread_cond_t signal_master_dead_cv;
 extern pthread_cond_t signal_server_bind_failed_cv;
+typedef void *(*func_ptr)(void *data);
+static func_ptr payload = NULL;
+static void *payload_para = NULL;
 #define error_handle( true , s) \
 		do {\
 		if(true){ \
@@ -38,6 +41,14 @@ typedef struct  {
 static int n_client = 0;
 pthread_mutex_t mutex_n_th = PTHREAD_MUTEX_INITIALIZER;
 static const ssize_t buffer_length = 30;
+/**
+ *
+ * @param th_p
+ */
+void pay_load_register( void *payload_thread(void *), void *parameter){
+	payload = payload_thread;
+	payload_para = parameter;
+}
 static void exit_routine(th_data_t * th_p){
 	pthread_mutex_lock(&mutex_n_th);
 	n_client --;
@@ -159,6 +170,12 @@ START:
 	}
 	/** the right position to call */
 	system("gnome-terminal -e ./combine.out");
+	/** the right position to init/run payload */
+	if(payload){
+		payload(payload_para);
+	}else{
+		error_handle(1, "payload in server_thread");
+	}
 	char dst[50];
 	const char * temp = inet_ntop(res_ai->ai_family, res_ai->ai_addr, dst, res_ai->ai_addrlen);
 	printf("my ip: %s\n ip2: %s\n", temp, dst);
