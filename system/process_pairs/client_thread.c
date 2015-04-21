@@ -50,6 +50,10 @@ NEW_SOCKET:
 			pthread_mutex_unlock(&signal_master_dead_mtx);
 			// avoid multiple slaves compete to be master, only the quickest win, the others transit back to slaves
 			/**
+			 * waiting my server thread signal back. if my server thread failed to be the first,
+			 * then server sleep again, clients keep connect to the new spawned server.
+			 *
+			 * If my server wins, then I am gonna stuck here until the whole program to be killed.
 			 *
 			 */
 
