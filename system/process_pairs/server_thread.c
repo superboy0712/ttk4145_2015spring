@@ -114,7 +114,7 @@ static void * server( void * th_dp){
 			free(text);
 			exit_routine(p);
 		}
-		printf("user %d: %s\n",p->client_fd, text);
+		//printf("user %d: %s\n",p->client_fd, text);
 
 		if(!strcmp(text, "quit\n")){
 			free(text);
@@ -193,7 +193,7 @@ START:
 
 	char dst[50];
 	const char * temp = inet_ntop(res_ai->ai_family, res_ai->ai_addr, dst, res_ai->ai_addrlen);
-	printf("my ip: %s\n ip2: %s\n", temp, dst);
+	//printf("my ip: %s\n ip2: %s\n", temp, dst);
 	/*listen! indicate that i am the server*/
 	rc = listen(sock_fd, 5);
 	if(rc == -1){
