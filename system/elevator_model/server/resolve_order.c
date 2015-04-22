@@ -110,7 +110,7 @@ void* resolve_order_function(void* shared_interface_data){
 														local_nodes_data[loop_var].sock_status=0;				//clear sock status
 														local_nodes_data[loop_var].sock_data=0;				//clear sock data both sockets...!!!!
 														local_nodes_data[loop_var].sock_order=0;
-																//EDITED PART ENDS HERE
+																//EDITED PART ENDS HERE*/
 
 												}										
 												else {
@@ -246,7 +246,20 @@ void* resolve_order_function(void* shared_interface_data){
 							memset(local_nodes_data[loop_var].buf_send, 0, SEND_SIZE);
 						
 						}
-			
+
+							pthread_mutex_lock(&connected_nodes_data.node_mutex);		//lock node mutex
+
+					for(loop_var=0;loop_var<N_CLIENT;loop_var++){
+
+						connected_nodes_data.clients[loop_var].sock_status=local_nodes_data[loop_var].sock_status;
+						connected_nodes_data.clients[loop_var].sock_data=local_nodes_data[loop_var].sock_data;			 
+						connected_nodes_data.clients[loop_var].sock_order=local_nodes_data[loop_var].sock_order;		//update all descriptors, 
+						strncpy(connected_nodes_data.clients[loop_var].my_ip,local_nodes_data[loop_var].my_ip,INET6_ADDRSTRLEN);	
+
+					}
+
+				pthread_mutex_unlock(&connected_nodes_data.node_mutex);		//unlock node mutex	 
+
 					
 			
 			}	//if(interface_in_resolve_thrd->order_f
