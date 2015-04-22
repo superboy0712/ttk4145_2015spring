@@ -37,7 +37,7 @@ char status_buffer[SEND_SIZE];
 void * request_button_events_parser_thread(void *data){
 	data = NULL;
 	input_status_t input_read;
-	unsigned int dest_floor;
+	unsigned int dest_floor = 0xff;
 	request_type_t dest_type = request_empty;
 	while(1){
 		BEGIN:
@@ -63,7 +63,9 @@ void * request_button_events_parser_thread(void *data){
 				}
 			}
 		}
+
 		pthread_mutex_unlock(input_event_ptr->mutex);
+		if(dest_floor == 0xff) continue;
 		/**
 		 * TODO single elevator first, then include in the inquiry status, cost, send request.
 		 */
