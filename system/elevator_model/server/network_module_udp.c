@@ -9,9 +9,9 @@
 int init_network_udp(char *ip,char *port_num, struct addrinfo **serv_info_p)
 {
 
-	struct addrinfo hints;
-	int sock_desc=0;	
-	struct addrinfo * serv_info;
+	struct 	addrinfo hints;
+	int 		sock_desc=0;	
+	struct 	addrinfo * serv_info;
 	//struct for timeout part
 	struct timeval tv;
 	tv.tv_sec = 0;
