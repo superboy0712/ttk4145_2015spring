@@ -11,6 +11,9 @@
 #include "client_thread.h"
 #include <stddef.h>
 #include <pthread.h>
+#include <stdio.h>
+#include <unistd.h>
+#include "../elevator_model/elevator_model.h"
 pthread_t server_tid, client_tid;
 typedef struct {
 	pthread_mutex_t * const mtx;
@@ -24,8 +27,18 @@ thread_arg_t th_arg =
 	.mtx = &signal_master_dead_mtx,
 	.cv = &signal_master_dead_cv
 };
+pthread_t hello_elevator;
+void *system_payload(void *data){
+	data = NULL;
+	controller_layer_main(NULL);
+	return NULL;
+}
+void *wrap(void *data){
+	pthread_create(&hello_elevator, NULL, system_payload, data);
+	return NULL;
+}
 int main(void) {
-
+	pay_load_register(wrap, NULL);
 	pthread_create(&server_tid, NULL, server_main, (void*)&th_arg);
 	pthread_create(&client_tid, NULL, client_main, (void*)&th_arg);
 	pthread_join(server_tid, NULL);

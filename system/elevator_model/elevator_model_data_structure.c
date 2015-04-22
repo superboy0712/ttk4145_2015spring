@@ -136,7 +136,7 @@ void *input_polling_thread(void * data){
 //			cmd);
 		}
 //		printf(" top: %d", task_queue_top);
-		puts("");
+//		puts("");
 		input_status.floor_sensor = elev_get_floor_sensor_signal();
 //		printf("Current sensor value is:%d\n",input_status.floor_sensor);
 		input_status.obst_button = elev_get_obstruction_signal();
@@ -145,7 +145,7 @@ void *input_polling_thread(void * data){
 //		printf("Current stop value is:%d\n",input_status.stop_button);
 
 //		printf("Current floor value is:%d\n",desired_floor);
-		printf("current position %f\n", current_floor_position);
+		//printf("current position %f\n", current_floor_position);
 		pthread_mutex_unlock(&input_status_lock);
 		usleep(50000);
 	}
@@ -186,7 +186,7 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 {
 	data_motor_controller_ptr = NULL;
 	int read_desired_floor = 0;
-
+	desired_floor = (elev_get_floor_sensor_signal()==-1)? elev_get_floor_sensor_signal(): 0;
 	while(1)
 	{
 		read_desired_floor = desired_floor;
@@ -216,7 +216,7 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 						/* reach the desired floor, notify the dispatcher */
 						pthread_mutex_lock((floor_reached_event.mutex));
 							pthread_cond_broadcast((floor_reached_event.cv));
-							printf("reached signal broadcast!\n\n\n");
+							//printf("reached signal broadcast!\n\n\n");
 						pthread_mutex_unlock((floor_reached_event.mutex));
 					}
 				} else {
