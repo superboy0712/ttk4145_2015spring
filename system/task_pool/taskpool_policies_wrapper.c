@@ -79,13 +79,13 @@ static int get_optimal_request_from_specified_on_search_direction(
 		if (failed_count % 2 == 1) {
 			if (*direction > 0) {
 				ret = get_nearest_request_of_specified_upward(pool, 0,
-						request_up_dn_cmd);
-				*ret_type = request_up_dn_cmd;
+						request_up_n_cmd);
+				*ret_type = request_up_n_cmd;
 			}
 			else {
 				ret = get_nearest_request_of_specified_downward(pool,
-				N_LENGTH_OF_TASK_POOL - 1, request_up_dn_cmd);
-				*ret_type = request_up_dn_cmd;
+				N_LENGTH_OF_TASK_POOL - 1, request_dn_n_cmd);
+				*ret_type = request_dn_n_cmd;
 			}
 			if (ret == -1) {
 				failed_count++;

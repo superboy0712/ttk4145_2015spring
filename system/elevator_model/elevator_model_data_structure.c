@@ -186,7 +186,7 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 {
 	data_motor_controller_ptr = NULL;
 	int read_desired_floor = 0;
-	desired_floor = (elev_get_floor_sensor_signal()!=-1)? elev_get_floor_sensor_signal(): 0;
+	desired_floor = (elev_get_floor_sensor_signal()==-1)? elev_get_floor_sensor_signal(): 0;
 	while(1)
 	{
 		read_desired_floor = desired_floor;

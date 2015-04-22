@@ -107,10 +107,21 @@ void* resolve_order_function(void* shared_interface_data){
 
 														pthread_mutex_unlock(&new_connection_data.ip_mutex);
 
-														local_nodes_data[loop_var].sock_status=0;				//clear sock status
-														local_nodes_data[loop_var].sock_data=0;				//clear sock data both sockets...!!!!
-														local_nodes_data[loop_var].sock_order=0;
-																//EDITED PART ENDS HERE*/
+													/*	pthread_mutex_lock(&connected_nodes_data.node_mutex);
+
+														connected_nodes_data.clients[loop_var].sock_status=local_nodes_data[loop_var].sock_status;
+														connected_nodes_data.clients[loop_var].sock_data=local_nodes_data[loop_var].sock_data;			 
+														connected_nodes_data.clients[loop_var].sock_order=local_nodes_data[loop_var].sock_order;		//update all descriptors, 
+														strncpy(connected_nodes_data.clients[loop_var].my_ip,local_nodes_data[loop_var].my_ip,INET6_ADDRSTRLEN);	
+
+														pthread_mutex_unlock(&connected_nodes_data.node_mutex);*/
+														
+													local_nodes_data[loop_var].sock_status=0;
+													local_nodes_data[loop_var].sock_data=0;
+													local_nodes_data[loop_var].sock_order=0;
+
+		
+																					//EDITED PART ENDS HERE*/
 
 												}										
 												else {
@@ -136,11 +147,19 @@ void* resolve_order_function(void* shared_interface_data){
 
 							
 											//extract  MY OWN status at location zero of all arrays.....
-								subString(my_status, 10, 1, &cost_values.temp_floor);
-								cost_values.temp_floor[1] = '\0';
-								cost_values.floor[0]=atoi(&cost_values.temp_floor);									
-								subString(my_status, 12, 1, &cost_values.direction[0]);
-								cost_values.index[0]=1;
+//								subString(my_status, 10, 1, &cost_values.temp_floor);
+//								cost_values.temp_floor[1] = '\0';
+//								cost_values.floor[0]=atoi(&cost_values.temp_floor);
+//								subString(my_status, 12, 1, &cost_values.direction[0]);
+//								cost_values.index[0]=1;
+					sscanf(local_nodes_data[loop_var].buf_read, "MY_STATUS_%d_%c_%d_%d_%f_%d_%d",
+															&cost_values.floor[0],
+															&cost_values.direction[0],
+															&cost_values.stop[0],
+															&cost_values.obstrukt[0],
+															&cost_values.floor_position[0],
+															&cost_values.moving_vector[0],
+															&cost_values.timeout_status[0]);
 
 								
 					int index =1;
@@ -150,18 +169,45 @@ void* resolve_order_function(void* shared_interface_data){
 							if(recv_bytes[loop_var]>0){
 
 							
-
+												//MY_STATUS_2_D_0_0_2.000000_0_1
 
 											//extract floors...
-								subString(local_nodes_data[loop_var].buf_read, 10, 1, &cost_values.temp_floor);
-								cost_values.temp_floor[1] = '\0';
-								cost_values.floor[index]=atoi(&cost_values.temp_floor);
-												//extract directions...
-								subString(local_nodes_data[loop_var].buf_read, 12, 1, &cost_values.direction[index]);
+//								subString(local_nodes_data[loop_var].buf_read, 10, 1, &cost_values.temp_floor);
+//								cost_values.temp_floor[1] = '\0';
+//								cost_values.floor[index]=atoi(&cost_values.temp_floor);
+//												//extract directions...
+
+//								subString(local_nodes_data[loop_var].buf_read, 12, 1, &cost_values.direction[index]);
+								sscanf(local_nodes_data[loop_var].buf_read, "MY_STATUS_%d_%c_%d_%d_%f_%d_%d",
+										&cost_values.floor[index],
+										&cost_values.direction[index],
+										&cost_values.stop[index],
+										&cost_values.obstrukt[index],
+										&cost_values.floor_position[index],
+										&cost_values.moving_vector[index],
+										&cost_values.timeout_status[index]);
+								/*				//extract STOP button...
+								subString(local_nodes_data[loop_var].buf_read, 14, 1, &cost_values.stop[index]);
+												//extract OBSTRUKT button...
+								subString(local_nodes_data[loop_var].buf_read, 16, 1, &cost_values.obstrukt[index]);
+												//extract floor position...
+								subString(local_nodes_data[loop_var].buf_read, 18, 1, &cost_values.floor_position[index]);
+												//extract moving vector...
+								subString(local_nodes_data[loop_var].buf_read, 27, 1, &cost_values.moving_vector[index]);
+												//extract timeout status...
+								subString(local_nodes_data[loop_var].buf_read, 29, 1, &cost_values.timeout_status[index]);
+								*/
 												//copy sock_desc....
 								cost_values.index[index]=loop_var+1;
 
-								printf("Resolve Order Thread: Received Client's Floor is %d Direction is %c \n",cost_values.floor[index],cost_values.direction[index]);	//debug
+								printf("Resolve Order Thread: Received Client's Floor is %d Direction is %c, stop %d, obs %d, fp %f, mv %d, to %d\n",
+										cost_values.floor[index],
+										cost_values.direction[index],
+										cost_values.stop[index],
+										cost_values.obstrukt[index],
+										cost_values.floor_position[index],
+										cost_values.moving_vector[index],
+										cost_values.timeout_status[index]);	//debug
 
 								index++;
 
@@ -229,6 +275,19 @@ void* resolve_order_function(void* shared_interface_data){
 									
 						}	//else myself has....
 
+							pthread_mutex_lock(&connected_nodes_data.node_mutex);		//lock node mutex
+
+					for(loop_var=0;loop_var<N_CLIENT;loop_var++){
+
+						connected_nodes_data.clients[loop_var].sock_status=local_nodes_data[loop_var].sock_status;
+						connected_nodes_data.clients[loop_var].sock_data=local_nodes_data[loop_var].sock_data;			 
+						connected_nodes_data.clients[loop_var].sock_order=local_nodes_data[loop_var].sock_order;		//update all descriptors, 
+						strncpy(connected_nodes_data.clients[loop_var].my_ip,local_nodes_data[loop_var].my_ip,INET6_ADDRSTRLEN);	
+
+					}
+
+				pthread_mutex_unlock(&connected_nodes_data.node_mutex);		//unlock node mutex	 */
+
 						/*clear struct....*/
 
 						for(loop_var=0; loop_var<N_CLIENT; loop_var++){
@@ -247,18 +306,6 @@ void* resolve_order_function(void* shared_interface_data){
 						
 						}
 
-							pthread_mutex_lock(&connected_nodes_data.node_mutex);		//lock node mutex
-
-					for(loop_var=0;loop_var<N_CLIENT;loop_var++){
-
-						connected_nodes_data.clients[loop_var].sock_status=local_nodes_data[loop_var].sock_status;
-						connected_nodes_data.clients[loop_var].sock_data=local_nodes_data[loop_var].sock_data;			 
-						connected_nodes_data.clients[loop_var].sock_order=local_nodes_data[loop_var].sock_order;		//update all descriptors, 
-						strncpy(connected_nodes_data.clients[loop_var].my_ip,local_nodes_data[loop_var].my_ip,INET6_ADDRSTRLEN);	
-
-					}
-
-				pthread_mutex_unlock(&connected_nodes_data.node_mutex);		//unlock node mutex	 
 
 					
 			

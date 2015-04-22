@@ -176,8 +176,13 @@ pthread_join(resolve_order_thread, NULL);
 	int the_opt_idx = 0;
 	memset(minimum_one_s_array_indexes, 0xfff, N_CLIENT*sizeof(int));
 		for(i=0; i<cost_values.max_index; i++)	{
-			temp_diff[i]=temp_order_floor-cost_values.floor[i];
-				if(temp_diff[i]<0){temp_diff[i]=(-1*temp_diff[i]);}		
+			if(cost_values.stop[i]==1||cost_values.obstrukt[i]==1){
+				temp_diff[i] = 0xfff;
+			}else{
+				temp_diff[i]=temp_order_floor-cost_values.floor[i];
+				if(temp_diff[i]<0){temp_diff[i]=(-1*temp_diff[i]);}
+			}
+
 		}
 
 			minimum = temp_diff[0];

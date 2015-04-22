@@ -39,10 +39,11 @@ char status_buffer[SEND_SIZE];
 void * request_button_events_parser_thread(void *data){
 	data = NULL;
 	input_status_t input_read;
-	unsigned int dest_floor = 0xff;
+	unsigned int dest_floor;
 	request_type_t dest_type = request_empty;
 	while(1){
 		BEGIN:
+		dest_floor = 0xff;
 		pthread_mutex_lock(input_event_ptr->mutex);
 		pthread_cond_wait(input_event_ptr->cv, input_event_ptr->mutex);
 		input_read = get_input_status_unsafe();
@@ -157,11 +158,7 @@ void *elevator_running_controller_thread(void * data){
 
 			case REACHED:
 				open_wait_close();
-				if(get_req_count() == 0){
-					elevator_status = IDLE;
-				}else{
-					elevator_status = WORKING;
-				}
+				elevator_status = WORKING;
 			break;
 
 			case WORKING:
@@ -211,7 +208,6 @@ void car_moving_handler(void){
 			cur_floor--;
 		}
 		dest_floor = cur_floor;
-		dir = get_motor_last_none_zero_motor_moving_vector();
 		if(cur_floor == N_FLOORS-1) dir = -1;
 		if(cur_floor == 0) dir = 1;
 		temp_dir = dir;
@@ -224,23 +220,24 @@ void car_moving_handler(void){
 		 *  error handling
 		 */
 		if(dest_floor == -1){
-			if(failed_count > 4){
-				puts("fetch empty task 5 times in cage_move_handler, that shouln't happen!");
-				error_exit_from_cage = 1;
-				goto ERROR_EXIT;
-			}
-			else if(2<= failed_count && failed_count<=4){
-					if(temp_dir == dir){
-						dir = -dir;
-					}
-					puts("fetch empty task in cage_move_handler, try inverse direction!");
-			}
+//			if(failed_count > 4){
+//				puts("fetch empty task 5 times in cage_move_handler, that shouln't happen!");
+//				error_exit_from_cage = 1;
+//				goto ERROR_EXIT;
+//			}
+//			else if(2<= failed_count && failed_count<=4){
+//					if(temp_dir == dir){
+//						dir = -dir;
+//					}
+//					puts("fetch empty task in cage_move_handler, try inverse direction!");
+//			}
 
 			failed_count++;
 			if(temp_dir == dir){
 				dir = -dir;
 			}
-			//error_exit_from_cage = 1;
+			error_exit_from_cage = 1;
+			//goto ERROR_EXIT;
 			goto ERROR_RETRY;
 		}
 
@@ -331,7 +328,7 @@ void *request_button_light_controller_thread(void *data){
 		 */
 		pthread_mutex_lock(&in_main_interface->interface_mutex);
 			char DIR = (get_motor_last_none_zero_motor_moving_vector()>0)? 'U':'D';
-			sprintf(status_buffer,"MY_STATUS_%d_%c_%d_%d_%f_%d_%d", get_last_stable_floor(), DIR,
+						sprintf(status_buffer,"MY_STATUS_%d_%c_%d_%d_%f_%d_%d", get_last_stable_floor(), DIR,
 					get_light_status().stop_light,
 					get_input_status_unsafe().obst_button,
 					get_current_floor_position(),
@@ -396,9 +393,12 @@ void *controller_layer_main(void *data) {
 		perror("pthread_create");
 		exit(-1);
 	}
+	int count = 0;
 	while(1){
 		sleep(10);
+		count++;
 		puts("i am alive. boring");
+		if(count>= 2) exit(0);
 	}
 	return 0;
 }

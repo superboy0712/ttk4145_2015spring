@@ -41,7 +41,7 @@
 #define 	DATA_PORT		"3500"
 #define 	ORDER_PORT		"4500"
 #define 	UDP_PORT		"49566"
-#define 	SEND_SIZE		50
+#define 	SEND_SIZE		100
 #define 	N_CLIENT		20
 #define 	TRUE			1
 #define 	FALSE			0
@@ -146,7 +146,18 @@ struct cost_param_t {
 
 	char temp_floor[2];	/**< Temporay variable used for conversion from string to int*/
 
+	int stop[N_CLIENT];		/**< STOP button status*/
+
+	int obstrukt[N_CLIENT];	/**< OBSTRUKT button status*/
+
+	float floor_position[N_CLIENT];	/**< In-between floor position*/
+
+	int 	moving_vector[N_CLIENT]; /**< Direction Vector of motor*/
+
+	int 	timeout_status[N_CLIENT];	/**< Timeout status of client*/
+
 	int max_index;		/**< Maximum value of index*/
+
 
 };
 
