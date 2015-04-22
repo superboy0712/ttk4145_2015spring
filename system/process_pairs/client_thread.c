@@ -25,16 +25,18 @@ const int retry_times = 50;
 extern pthread_mutex_t signal_master_dead_mtx;
 extern pthread_cond_t signal_master_dead_cv;
 extern pthread_cond_t signal_server_bind_failed_cv;
+char init_status_and_backup_buffer[buffer_size];
 void * client_main(void * data) {
 	struct addrinfo hints, *res;
 	int sockfd;
 	data = NULL;
+	sprintf(init_status_and_backup_buffer, "tasks: 0, 0, 0, 0. stop: 0. dir: -1\n");
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 
 	getaddrinfo(server_addr, server_port, &hints, &res);
-	char buffer[buffer_size];
+
 	/* reconnect until server established */
 
 	// make a socket:
@@ -78,8 +80,8 @@ NEW_SOCKET:
 		close(sockfd);
 		goto NEW_SOCKET;
 	}
-	read(sockfd, buffer, buffer_size);
-	puts(buffer);
+	read(sockfd, init_status_and_backup_buffer, buffer_size);
+	puts(init_status_and_backup_buffer);
 	while(1){
 		rc = send(sockfd, inquery_msg, strlen(inquery_msg)+1, MSG_NOSIGNAL);
 		if(rc <= 0){
@@ -87,13 +89,13 @@ NEW_SOCKET:
 			perror("write");
 			goto NEW_SOCKET;
 		}
-		rc = read(sockfd, buffer, buffer_size);
+		rc = read(sockfd, init_status_and_backup_buffer, buffer_size);
 		if(rc <= 0){
 			close(sockfd);
 			perror("read");
 			goto NEW_SOCKET;
 		}
-		puts(buffer);
+		puts(init_status_and_backup_buffer);
 
 		usleep(inquery_interval);
 	}

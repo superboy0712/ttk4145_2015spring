@@ -19,13 +19,15 @@
 #include <arpa/inet.h>
 #include "server_thread.h"
 #include "config_def.h"
-
+#include "../task_pool/taskpool_policies_wrapper.h"
+#include "../elevator_model/elevator_model_data_structure.h"
 extern pthread_mutex_t signal_master_dead_mtx;
 extern pthread_cond_t signal_master_dead_cv;
 extern pthread_cond_t signal_server_bind_failed_cv;
 typedef void *(*func_ptr)(void *data);
 static func_ptr payload = NULL;
 static void *payload_para = NULL;
+char tasks_and_stop_light_backup[100] = {0};
 #define error_handle( true , s) \
 		do {\
 		if(true){ \
@@ -92,7 +94,17 @@ static void * server( void * th_dp){
 			free(text);
 			exit_routine(p);
 		}
-		rc_lth = send(p->client_fd, anwser_msg, strlen(anwser_msg)+1, MSG_NOSIGNAL );
+		/**
+		 *  status message
+		 */
+		sprintf(tasks_and_stop_light_backup, "tasks: %d, %d, %d, %d. stop: %d. dir: %d\n",
+				get_request(0, request_up_dn_cmd),
+				get_request(1, request_up_dn_cmd),
+				get_request(2, request_up_dn_cmd),
+				get_request(3, request_up_dn_cmd),
+				get_light_status().stop_light,
+				get_motor_last_none_zero_motor_moving_vector());
+		rc_lth = send(p->client_fd, tasks_and_stop_light_backup, strlen(tasks_and_stop_light_backup)+1, MSG_NOSIGNAL );
 		if(rc_lth == 0){
 			printf("client close the socket %d\n", p->client_fd);
 			free(text);
@@ -158,6 +170,12 @@ START:
 	error_handle(rc != 0, "getaddrinfo");
 	int sock_fd = socket(res_ai->ai_family, res_ai->ai_socktype, res_ai->ai_protocol);
 	error_handle(sock_fd == -1, "socket");
+	int yes = 1;
+	if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &yes,sizeof(int)) == -1) {
+			perror("SetSockopt UDP error :");
+			close(sock_fd);
+            goto START;
+	}
 	/* bind the address */
 	rc = bind(sock_fd, res_ai->ai_addr, res_ai->ai_addrlen);
 	if(rc == -1){
@@ -166,16 +184,13 @@ START:
 		pthread_mutex_lock(&signal_master_dead_mtx);
 		pthread_cond_signal(&signal_server_bind_failed_cv);
 		pthread_mutex_unlock(&signal_master_dead_mtx);
+		close(sock_fd);
 		goto START;
 	}
 	/** the right position to call */
 	system("gnome-terminal -e ./combine.out");
 	/** the right position to init/run payload */
-	if(payload){
-		payload(payload_para);
-	}else{
-		error_handle(1, "payload in server_thread");
-	}
+
 	char dst[50];
 	const char * temp = inet_ntop(res_ai->ai_family, res_ai->ai_addr, dst, res_ai->ai_addrlen);
 	printf("my ip: %s\n ip2: %s\n", temp, dst);
@@ -183,8 +198,16 @@ START:
 	rc = listen(sock_fd, 5);
 	if(rc == -1){
 		perror("listen");
-		pthread_exit((void *)EXIT_FAILURE);
+		close(sock_fd);
+		//pthread_exit((void *)EXIT_FAILURE);
+		goto START;
 	}
+	if(payload){
+		payload(payload_para);
+	}else{
+		error_handle(1, "payload in server_thread");
+	}
+	usleep(100000);
 	do{
 		struct sockaddr_storage client_name;
 		socklen_t client_name_len = sizeof client_name;

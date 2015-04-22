@@ -1,6 +1,6 @@
 # Compiler flags go here.
 CC = clang
-CFLAGS = -g -Wall -O2 -I./ -I../ -MMD -std=gnu99
+CFLAGS = -c -g -Wall -O2 -I./ -I../ -MMD -std=gnu99
 
 # Linker flags go here.
 LDFLAGS = -lpthread -lcomedi -g -lm
@@ -10,9 +10,10 @@ ELEVSRC = ../drivers/elev.c ../drivers/io.c  elevator_controller_layer.c elevato
 			../task_pool/taskpool_policies_wrapper.c ../task_pool/lift_task_queue.c\
 			./server/network_module_tcp.c ./server/network_module_udp.c ./server/new.c
 
+# list of sources
+COMBSRC = ../process_pairs/server_client_pairs.c ../process_pairs/client_thread.c ../process_pairs/server_thread.c ../process_pairs/config_def.c
 # program executable file name.
-TARGET = elevator_model
-
+TARGET = combine.out
 # top-level rule, to compile everything.
 all: $(TARGET)
 
@@ -20,7 +21,7 @@ all: $(TARGET)
 DEPS = $(shell find -name "*.d")
 
 # Define all object files.
-ELEVOBJ = $(ELEVSRC:.c=.o)
+ELEVOBJ = $(ELEVSRC:.c=.o) $(COMBSRC:.c=.o)
 
 # rule to link the program
 $(TARGET): $(ELEVOBJ)
