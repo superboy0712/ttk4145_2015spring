@@ -157,7 +157,11 @@ void *elevator_running_controller_thread(void * data){
 
 			case REACHED:
 				open_wait_close();
-				elevator_status = WORKING;
+				if(get_req_count() == 0){
+					elevator_status = IDLE;
+				}else{
+					elevator_status = WORKING;
+				}
 			break;
 
 			case WORKING:
@@ -207,6 +211,7 @@ void car_moving_handler(void){
 			cur_floor--;
 		}
 		dest_floor = cur_floor;
+		dir = get_motor_last_none_zero_motor_moving_vector();
 		if(cur_floor == N_FLOORS-1) dir = -1;
 		if(cur_floor == 0) dir = 1;
 		temp_dir = dir;
@@ -219,24 +224,23 @@ void car_moving_handler(void){
 		 *  error handling
 		 */
 		if(dest_floor == -1){
-//			if(failed_count > 4){
-//				puts("fetch empty task 5 times in cage_move_handler, that shouln't happen!");
-//				error_exit_from_cage = 1;
-//				goto ERROR_EXIT;
-//			}
-//			else if(2<= failed_count && failed_count<=4){
-//					if(temp_dir == dir){
-//						dir = -dir;
-//					}
-//					puts("fetch empty task in cage_move_handler, try inverse direction!");
-//			}
+			if(failed_count > 4){
+				puts("fetch empty task 5 times in cage_move_handler, that shouln't happen!");
+				error_exit_from_cage = 1;
+				goto ERROR_EXIT;
+			}
+			else if(2<= failed_count && failed_count<=4){
+					if(temp_dir == dir){
+						dir = -dir;
+					}
+					puts("fetch empty task in cage_move_handler, try inverse direction!");
+			}
 
 			failed_count++;
 			if(temp_dir == dir){
 				dir = -dir;
 			}
-			error_exit_from_cage = 1;
-			//goto ERROR_EXIT;
+			//error_exit_from_cage = 1;
 			goto ERROR_RETRY;
 		}
 
@@ -327,8 +331,14 @@ void *request_button_light_controller_thread(void *data){
 		 */
 		pthread_mutex_lock(&in_main_interface->interface_mutex);
 			char DIR = (get_motor_last_none_zero_motor_moving_vector()>0)? 'U':'D';
-			sprintf(status_buffer,"MY_STATUS_%d_%c", get_last_stable_floor(), DIR);
-			strncpy(in_main_interface->interface_status_buffer, status_buffer, 13);
+			sprintf(status_buffer,"MY_STATUS_%d_%c_%d_%d_%f_%d_%d", get_last_stable_floor(), DIR,
+					get_light_status().stop_light,
+					get_input_status_unsafe().obst_button,
+					get_current_floor_position(),
+					get_motor_moving_vector(),
+					1
+					);
+			strncpy(in_main_interface->interface_status_buffer, status_buffer, SEND_SIZE);
 			if(in_main_interface->received_floor_flag==TRUE){
 				request_type_t type = (in_main_interface->received_direction == 'U')? request_call_up : request_call_down;
 				push_request(in_main_interface->received_floor, type);
