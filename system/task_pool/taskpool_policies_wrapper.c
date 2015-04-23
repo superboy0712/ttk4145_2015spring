@@ -9,6 +9,7 @@
 #include <malloc.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <string.h>
 static unsigned int N_LENGTH_OF_TASK_POOL = 4;
 static request_type_t *task_pool_secret = (void *)0;
 static pthread_mutex_t task_pool_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -46,58 +47,85 @@ void pop_request(int floor, request_type_t type){
 request_type_t get_request(int floor, request_type_t type){
 	return get_request_type(task_pool_secret+floor, type);
 }
+typedef enum states {
+	first_try = 1,
+	second_try,
+	third_try
+} states_t;
+/**
+ * @brief get optimal request from specified floor towards direction
+ * @param pool the task_pool to be searched
+ * @param specified specified floor
+ * @param direction
+ * @param ret_type the reqest_type that got
+ * @return -1, empty; return a valid request's floor number
+ */
 static int get_optimal_request_from_specified_on_search_direction(
 		const request_type_t * const pool, int specified, int *direction,
 		request_type_t * ret_type) {
-	int failed_count = 0;
 	int ret = specified;
+	states_t state = first_try;
 	if (*direction == 0){
 		*ret_type = request_up_dn_cmd;
 		return ret;
 	}
 	while (1) {
-		/* failed even */
-		if (failed_count % 2 == 0){
-			if (*direction > 0) {
-				ret = get_nearest_request_of_specified_upward(pool, specified,
-						request_up_n_cmd);
-				*ret_type = request_up_n_cmd;
-			} else {
-				ret = get_nearest_request_of_specified_downward(pool, specified,
-						request_dn_n_cmd);
-				*ret_type = request_dn_n_cmd;
-			}
 
-			if (ret == -1) {
-				failed_count++;
-				*direction = -*direction;
-			} else {
+		switch (state) {
+			case first_try:
+				if (*direction > 0) {
+					ret = get_nearest_request_of_specified_upward(pool, specified,
+							request_up_n_cmd);
+					*ret_type = request_up_n_cmd;
+				} else {
+					ret = get_nearest_request_of_specified_downward(pool, specified,
+							request_dn_n_cmd);
+					*ret_type = request_dn_n_cmd;
+				}
+
+				if(ret == -1){
+					state = second_try;
+					*direction = -*direction;
+				}else{
+					return ret;
+				}
+			break;
+			case second_try:
+				if (*direction > 0) {
+					ret = get_nearest_request_of_specified_upward(pool, 0,
+							request_up_n_cmd);
+					*ret_type = request_up_n_cmd;
+				} else {
+					ret = get_nearest_request_of_specified_downward(pool, N_LENGTH_OF_TASK_POOL-1,
+							request_dn_n_cmd);
+					*ret_type = request_dn_n_cmd;
+				}
+
+				if(ret == -1){
+					state = third_try;
+					*direction = -*direction;
+				}else{
+					return ret;
+				}
+			break;
+			case third_try:
+				if (*direction > 0) {
+					ret = get_nearest_request_of_specified_upward(pool, 0,
+							request_up_n_cmd);
+					*ret_type = request_up_n_cmd;
+				} else {
+					ret = get_nearest_request_of_specified_downward(pool, N_LENGTH_OF_TASK_POOL-1,
+							request_dn_n_cmd);
+					*ret_type = request_dn_n_cmd;
+				}
+
+				if(ret == -1){
+					*ret_type = request_empty;
+				}
 				return ret;
-			}
-		}
-		/* failed odd */
-		if (failed_count % 2 == 1) {
-			if (*direction > 0) {
-				ret = get_nearest_request_of_specified_upward(pool, 0,
-						request_up_n_cmd);
-				*ret_type = request_up_n_cmd;
-			}
-			else {
-				ret = get_nearest_request_of_specified_downward(pool,
-				N_LENGTH_OF_TASK_POOL - 1, request_dn_n_cmd);
-				*ret_type = request_dn_n_cmd;
-			}
-			if (ret == -1) {
-				failed_count++;
-				*direction = -*direction;
-			} else {
-				return ret;
-			}
-		}
-		/* failed limit */
-		if (failed_count >= 4){
-			*ret_type = request_empty;
-			return -1;
+			break;
+			default:
+			break;
 		}
 	}
 	return ret;

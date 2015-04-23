@@ -19,10 +19,24 @@
  *  @return  the optimal request got, -1 if the pool is empty.
  */
 extern int get_optimal_req(int from, int *dir, request_type_t *ret_type);
+/**
+ * push request to task pool
+ * @param floor
+ * @param type
+ */
 extern void push_request(int floor, request_type_t type);
+/**
+ * pop matched request from task pool
+ * @param floor
+ * @param type
+ */
 extern void pop_request(int floor, request_type_t type);
 extern request_type_t get_request(int floor, request_type_t type);
 extern unsigned int get_req_count(void);
+/**
+ * Allocate and init specified length of default task_pool
+ * @param length
+ */
 extern void default_task_pool_init( unsigned int length);
 extern void default_task_pool_destroy(void);
 extern void default_task_pool_print(void);
