@@ -187,6 +187,7 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 	data_motor_controller_ptr = NULL;
 	int read_desired_floor = 0;
 	desired_floor = (elev_get_floor_sensor_signal()==-1)? elev_get_floor_sensor_signal(): 0;
+	unsigned int exception_timer_in_100ms = 0;
 	while(1)
 	{
 		read_desired_floor = desired_floor;
@@ -205,7 +206,7 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 
 				int sensor = elev_get_floor_sensor_signal();  /* last floor */
 				if(sensor != -1){
-
+					exception_timer_in_100ms = 0;
 					last_stable_floor = sensor;
 					motor_moving_vector = read_desired_floor - sensor;
 					if(motor_moving_vector!=0){
@@ -220,16 +221,37 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 						pthread_mutex_unlock((floor_reached_event.mutex));
 					}
 				} else {
-					/** get to nearest fixed floor downwards, not somewhere in between  **/
-					elev_set_motor_direction(last_none_zero_motor_moving_vector);
 					/**
 					 * TODO add timeout detection here. if the sensor
 					 * keep -1 for longer than 10 seconds, change direction;
 					 * if still -1, then means power was down, init necessarily
 					 */
+					exception_timer_in_100ms++;
+					if(exception_timer_in_100ms >= 70){
+						static reverse_count = 0;
+						/**
+						 *  elevator should arrive at/pass by any sensor in 7 seconds
+						 *  while moving, if not, reverse direction
+						 */
+						exception_timer_in_100ms = 0;
+						last_none_zero_motor_moving_vector = -last_none_zero_motor_moving_vector;
+						reverse_count++;
+						puts("####Warning!! motor reverse to see if can reach any sensor!####");
+						if(reverse_count >= 2){
+							reverse_count = 0;
+							//last_none_zero_motor_moving_vector = 0;
+							/* into execption state, light_up the stop light */
+							light_status.stop_light = 1;
+							printf("####Warning!!! elevator failed to reach any sensor in 14 seconds even reverse twice.####\n "
+									"####Into disorder state. Motor stop!!\n####");
+						}
+					}
 					/**
 					 * TODO or use a dedicate watch-dog thread.
 					 */
+					/** get to nearest fixed floor according the moving vector, not somewhere in between  **/
+					elev_set_motor_direction(last_none_zero_motor_moving_vector);
+
 				}
 			}
 		}
