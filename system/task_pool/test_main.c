@@ -450,8 +450,121 @@ void scheduling_test_new_ver2(int cur_floor, int dir,
 		if(rc == -1){
 			break;
 		}
-		clr_request_type(request_pool_local + rc, ret_type);
-		cur_floor = rc;
+		if(rc != cur_floor){
+			cur_floor += (rc-cur_floor)/abs(rc-cur_floor);
+		}
+
+		if(cur_floor == rc){
+			clr_request_type(request_pool_local + rc, ret_type);
+		}
+		/** printing **/
+		//print_request_pool(request_pool_local, N_FLOORS);
+		printf("TASKS LEFT %d, current floor is %d, direction %d\n",
+				get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
+	}
+	puts("---------------------------Tests End!!---------------------------");
+	puts("---------------------------Final Result!!---------------------------");
+	print_request_pool(request_pool_local, N_LENGTH_OF_TASK_POOL);
+	printf("TASKS LEFT %d, current floor is %d, direction %d\n",
+			get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
+}
+int get_optimal_request_from_specified_on_search_direction_ver3(
+		const request_type_t * const pool, int specified, int *direction,
+		request_type_t * ret_type) {
+	int ret = specified;
+	states_t state = first_try;
+	if (*direction == 0){
+		*ret_type = request_up_dn_cmd;
+		return ret;
+	}
+	while (1) {
+
+		switch (state) {
+			case first_try:
+				if (*direction > 0) {
+					ret = get_nearest_request_of_specified_upward(pool, specified,
+							request_up_n_cmd);
+					*ret_type = request_up_n_cmd;
+				} else {
+					ret = get_nearest_request_of_specified_downward(pool, specified,
+							request_dn_n_cmd);
+					*ret_type = request_dn_n_cmd;
+				}
+
+				if(ret == -1){
+					state = second_try;
+					*direction = -*direction;
+				}else{
+					return ret;
+				}
+			break;
+			case second_try:
+				if (*direction > 0) {
+					ret = get_nearest_request_of_specified_upward(pool, 0,
+							request_up_n_cmd);
+					*ret_type = request_up_n_cmd;
+				} else {
+					ret = get_nearest_request_of_specified_downward(pool, N_LENGTH_OF_TASK_POOL-1,
+							request_dn_n_cmd);
+					*ret_type = request_dn_n_cmd;
+				}
+
+				if(ret == -1){
+					state = third_try;
+					*direction = -*direction;
+				}else{
+					return ret;
+				}
+			break;
+			case third_try:
+				if (*direction > 0) {
+					ret = get_nearest_request_of_specified_upward(pool, 0,
+							request_up_n_cmd);
+					*ret_type = request_up_n_cmd;
+				} else {
+					ret = get_nearest_request_of_specified_downward(pool, N_LENGTH_OF_TASK_POOL-1,
+							request_dn_n_cmd);
+					*ret_type = request_dn_n_cmd;
+				}
+
+				if(ret == -1){
+					*ret_type = request_empty;
+				}
+				return ret;
+			break;
+			default:
+			break;
+		}
+	}
+	return ret;
+}
+void scheduling_test_new_ver3(int cur_floor, int dir,
+		const request_type_t * const pool, const char * testname) {
+
+	request_type_t request_pool_local[N_LENGTH_OF_TASK_POOL];
+	memcpy(request_pool_local, pool, N_LENGTH_OF_TASK_POOL * sizeof(request_type_t));
+	printf("\n\n\n%s\n", testname);
+	puts("origin pool: ");
+	print_request_pool(request_pool_local, N_LENGTH_OF_TASK_POOL);
+	int temp_dir = dir;
+	printf("TASKS LEFT %d, current floor is %d, direction %d\n",
+			get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
+	puts("---------------------------Tests Start!!---------------------------");
+	int rc = cur_floor;
+	request_type_t ret_type;
+	while (get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL) != 0) {
+		rc = get_optimal_request_from_specified_on_search_direction_ver3(request_pool_local,
+				cur_floor, &temp_dir, &ret_type);
+		if(rc == -1){
+			break;
+		}
+		if(rc != cur_floor){
+			cur_floor += (rc-cur_floor)/abs(rc-cur_floor);
+		}
+
+		if(cur_floor == rc){
+			clr_request_type(request_pool_local + rc, ret_type);
+		}
 		/** printing **/
 		//print_request_pool(request_pool_local, N_FLOORS);
 		printf("TASKS LEFT %d, current floor is %d, direction %d\n",
@@ -474,17 +587,19 @@ int main(void) {
 //	get_optimal_test(-1, request_pool2, "opti: req2");
 //	scheduling_test(8, 1, request_pool2, "8 up");
 //	scheduling_test_new(8, -1, request_pool2, "8 down");
-	scheduling_test_new(8, 1, request_pool4, "8 up");
-	scheduling_test_new(8, -1, request_pool4, "8 down");
-	scheduling_test(8, 1, request_pool2, "8 up");
+//	scheduling_test_new(8, 1, request_pool4, "8 up");
+//	scheduling_test_new(8, -1, request_pool4, "8 down");
+//	scheduling_test(8, 1, request_pool2, "8 up");
+	scheduling_test_new_ver3(8, 1, request_pool2, "8 up");
 	scheduling_test_new_ver2(8, 1, request_pool2, "8 up");
-	scheduling_test_new_ver2(8, -1, request_pool2, "8 down");
-	scheduling_test_new_ver2(8, 1, request_pool3, "8 up full");
-	scheduling_test_new_ver2(8, -1, request_pool3, "8 down full");
-	scheduling_test_new_ver2(8, 1, request_pool, "8 up empty");
-	scheduling_test_new_ver2(8, -1, request_pool, "8 down empty");
-	scheduling_test(N_LENGTH_OF_TASK_POOL - 1, -1, request_pool3, "top down");
-	scheduling_test(0, 1, request_pool3, "bottom up");
-	scheduling_test(N_LENGTH_OF_TASK_POOL - 1, 1, request_pool3, "top up");
+//	scheduling_test_new_ver2(8, -1, request_pool2, "8 down");
+//	scheduling_test_new_ver2(8, 1, request_pool3, "8 up full");
+//	scheduling_test_new_ver3(8, 1, request_pool3, "8 up full");
+//	scheduling_test_new_ver2(8, -1, request_pool3, "8 down full");
+//	scheduling_test_new_ver2(8, 1, request_pool, "8 up empty");
+//	scheduling_test_new_ver2(8, -1, request_pool, "8 down empty");
+//	scheduling_test(N_LENGTH_OF_TASK_POOL - 1, -1, request_pool3, "top down");
+//	scheduling_test(0, 1, request_pool3, "bottom up");
+//	scheduling_test(N_LENGTH_OF_TASK_POOL - 1, 1, request_pool3, "top up");
 	return 0;
 }
