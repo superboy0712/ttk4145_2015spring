@@ -22,129 +22,7 @@ request_type_t request_pool3[N_LENGTH_OF_TASK_POOL] = { 7, 7, 7, 7, 7, 7, 7, 7, 
 		7, 7, 7, 7, 7, request_call_down, request_call_down };
 request_type_t request_pool4[N_LENGTH_OF_TASK_POOL] = { request_call_down, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, request_call_up };
-int test1(void) {
-	puts("!!!Hello World!!!"); /* prints !!!Hello World!!! */
-	print_request_pool(request_pool, N_LENGTH_OF_TASK_POOL);
-	set_request_type(request_pool + 5, request_call_cmd);
-	set_request_type(request_pool + 13, request_call_cmd);
-	set_request_type(request_pool + 0, request_call_cmd);
-	print_request_pool(request_pool, N_LENGTH_OF_TASK_POOL);
-	clr_request_type(request_pool + 5, request_call_cmd);
-	clr_request_type(request_pool + 13, request_call_down);
-	set_request_type(request_pool + 0, request_call_up);
-	print_request_pool(request_pool, N_LENGTH_OF_TASK_POOL);
-	for (int i = 0; i < 19; i++) {
-		set_request_type(request_pool + i,
-				request_call_up | request_call_down | request_call_cmd);
-		printf("%d ",
-				get_request_type(request_pool + i,
-						request_call_up | request_call_cmd));
-	}
-	puts("");
-	puts("udc");
-	print_request_pool(request_pool, N_LENGTH_OF_TASK_POOL);
-	for (int i = 0; i < 19; i++) {
-		int j = get_nearest_request_of_specified_upward(request_pool2, i,
-				request_call_up | request_call_down | request_call_cmd);
-		printf("%d ", j);
-	}
-	puts("");
-	puts("u");
-	for (int i = 0; i < 19; i++) {
-		int j = get_nearest_request_of_specified_upward(request_pool2, i,
-				request_call_up);
-		printf("%d ", j);
-	}
-	puts("");
-	puts("d");
-	for (int i = 0; i < 19; i++) {
-		int j = get_nearest_request_of_specified_upward(request_pool2, i,
-				request_call_down);
-		printf("%d ", j);
-	}
-	puts("");
-	puts("c");
-	for (int i = 0; i < 19; i++) {
-		int j = get_nearest_request_of_specified_upward(request_pool2, i,
-				request_call_cmd);
-		printf("%d ", j);
-	}
-	puts("");
-	puts("ud");
-	for (int i = 0; i < 19; i++) {
-		int j = get_nearest_request_of_specified_upward(request_pool2, i,
-				request_call_up | request_call_down);
-		printf("%d ", j);
-	}
-	puts("");
-	puts("uc");
-	for (int i = 0; i < 19; i++) {
-		int j = get_nearest_request_of_specified_upward(request_pool2, i,
-				request_call_up | request_call_cmd);
-		printf("%d ", j);
-	}
-	puts("");
-	puts("dc");
-	for (int i = 0; i < 19; i++) {
-		int j = get_nearest_request_of_specified_upward(request_pool2, i,
-				request_call_down | request_call_cmd);
-		printf("%d ", j);
-	}
-	return EXIT_SUCCESS;
-}
-void test2(void) {
-	puts("\ndownwards test!");
-	print_request_pool(request_pool2, N_LENGTH_OF_TASK_POOL);
-	puts("udc");
-	for (int i = 0; i < 19; i++) {
-		int j = get_nearest_request_of_specified_downward(request_pool2, i,
-				request_call_up | request_call_down | request_call_cmd);
-		printf("%d ", j);
-	}
-	puts("");
-	puts("u");
-	for (int i = 0; i < 19; i++) {
-		int j = get_nearest_request_of_specified_downward(request_pool2, i,
-				request_call_up);
-		printf("%d ", j);
-	}
-	puts("");
-	puts("d");
-	for (int i = 0; i < 19; i++) {
-		int j = get_nearest_request_of_specified_downward(request_pool2, i,
-				request_call_down);
-		printf("%d ", j);
-	}
-	puts("");
-	puts("c");
-	for (int i = 0; i < 19; i++) {
-		int j = get_nearest_request_of_specified_downward(request_pool2, i,
-				request_call_cmd);
-		printf("%d ", j);
-	}
-	puts("");
-	puts("ud");
-	for (int i = 0; i < 19; i++) {
-		int j = get_nearest_request_of_specified_downward(request_pool2, i,
-				request_call_up | request_call_down);
-		printf("%d ", j);
-	}
-	puts("");
-	puts("uc");
-	for (int i = 0; i < 19; i++) {
-		int j = get_nearest_request_of_specified_downward(request_pool2, i,
-				request_call_up | request_call_cmd);
-		printf("%d ", j);
-	}
-	puts("");
-	puts("dc");
-	for (int i = 0; i < 19; i++) {
-		int j = get_nearest_request_of_specified_downward(request_pool2, i,
-				request_call_down | request_call_cmd);
-		printf("%d ", j);
-	}
 
-}
 unsigned int get_nr_of_req(const request_type_t * pool, unsigned int length) {
 	int ret = 0;
 	for (int i = 0; i < length; i++) {
@@ -167,86 +45,6 @@ unsigned int get_nr_of_req(const request_type_t * pool, unsigned int length) {
 		}
 	}
 	return ret;
-}
-void scheduling_test(int cur_floor, int dir, const request_type_t * const pool,
-		const char * testname) {
-
-	int rc = 0;
-	int gnr_up_count = 0;
-	int gnr_dn_count = 0;
-	request_type_t request_pool_local[N_LENGTH_OF_TASK_POOL];
-	memcpy(request_pool_local, pool, N_LENGTH_OF_TASK_POOL * sizeof(request_type_t));
-	printf("\n\n\n%s\n", testname);
-	puts("origin pool: ");
-	print_request_pool(request_pool_local, N_LENGTH_OF_TASK_POOL);
-	printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-			get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, dir);
-	while (get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL) != 0) {
-		switch (dir) {
-		case 1:
-			rc = get_nearest_request_of_specified_upward(request_pool_local,
-					cur_floor, request_call_up | request_call_cmd);
-			if (rc == -1) {
-				gnr_up_count %= 2;
-				if (gnr_up_count) {
-					/* odd */
-				}
-				else {
-					/* even */
-					rc = get_nearest_request_of_specified_downward(
-							request_pool_local, N_LENGTH_OF_TASK_POOL - 1,
-							request_call_down | request_call_cmd);
-					clr_request_type(request_pool_local + rc,
-							request_call_down | request_call_cmd);
-					cur_floor = rc;
-				}
-				gnr_up_count++;
-				dir = -1;
-			}
-			else {
-				clr_request_type(request_pool_local + rc,
-						request_call_up | request_call_cmd);
-				cur_floor = rc;
-			}
-			break;
-		case -1:
-			rc = get_nearest_request_of_specified_downward(request_pool_local,
-					cur_floor, request_call_down | request_call_cmd);
-			if (rc == -1) {
-				gnr_dn_count %= 2;
-				if (gnr_dn_count) {
-					/* odd */
-				}
-				else {
-					/* even */
-					rc = get_nearest_request_of_specified_upward(
-							request_pool_local, 0,
-							request_call_up | request_call_cmd);
-					clr_request_type(request_pool_local + rc,
-							request_call_down | request_call_cmd);
-					cur_floor = rc;
-				}
-				gnr_dn_count++;
-				dir = 1;
-			}
-			else {
-				clr_request_type(request_pool_local + rc,
-						request_call_down | request_call_cmd);
-				cur_floor = rc;
-			}
-			break;
-		default:
-			//dir = 0;
-			break;
-		}
-		//print_request_pool(request_pool_local, N_FLOORS);
-		printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-				get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, dir);
-	}
-	puts("end!");
-	print_request_pool(request_pool_local, N_LENGTH_OF_TASK_POOL);
-	printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-			get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, dir);
 }
 /**
  * @return -1: empty, otherwise the optimal request
@@ -309,7 +107,9 @@ int get_optimal_request_from_specified_on_search_direction(
 	}
 	return ret;
 }
+
 extern const char *request_parse_string_table[8];
+
 void get_optimal_test(int dir, const request_type_t * const pool,
 		const char * testname) {
 	printf("---------------------------%s, dir %d!!---------------------------",testname, dir);
@@ -322,39 +122,7 @@ void get_optimal_test(int dir, const request_type_t * const pool,
 		printf("@%d, ret:%d %s dir:%d\n", i, j, request_parse_string_table[ret_type], temp_dir);
 	}
 }
-void scheduling_test_new(int cur_floor, int dir,
-		const request_type_t * const pool, const char * testname) {
 
-	request_type_t request_pool_local[N_LENGTH_OF_TASK_POOL];
-	memcpy(request_pool_local, pool, N_LENGTH_OF_TASK_POOL * sizeof(request_type_t));
-	printf("\n\n\n%s\n", testname);
-	puts("origin pool: ");
-	print_request_pool(request_pool_local, N_LENGTH_OF_TASK_POOL);
-	int temp_dir = dir;
-	printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-			get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
-	puts("---------------------------Tests Start!!---------------------------");
-	int rc = cur_floor;
-	request_type_t ret_type;
-	while (get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL) != 0) {
-		rc = get_optimal_request_from_specified_on_search_direction(request_pool_local,
-				cur_floor, &temp_dir, &ret_type);
-		if(rc == -1){
-			break;
-		}
-		clr_request_type(request_pool_local + rc, ret_type);
-		cur_floor = rc;
-		/** printing **/
-		//print_request_pool(request_pool_local, N_FLOORS);
-		printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-				get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
-	}
-	puts("---------------------------Tests End!!---------------------------");
-	puts("---------------------------Final Result!!---------------------------");
-	print_request_pool(request_pool_local, N_LENGTH_OF_TASK_POOL);
-	printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-			get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
-}
 typedef enum states {
 	first_try = 1,
 	second_try,
@@ -430,48 +198,7 @@ int get_optimal_request_from_specified_on_search_direction_ver2(
 	}
 	return ret;
 }
-void scheduling_test_new_ver2(int cur_floor, int dir,
-		const request_type_t * const pool, const char * testname) {
 
-	request_type_t request_pool_local[N_LENGTH_OF_TASK_POOL];
-	memcpy(request_pool_local, pool, N_LENGTH_OF_TASK_POOL * sizeof(request_type_t));
-	printf("\n\n\n%s\n", testname);
-	puts("origin pool: ");
-	print_request_pool(request_pool_local, N_LENGTH_OF_TASK_POOL);
-	int temp_dir = dir;
-	printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-			get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
-	puts("---------------------------Tests Start!!---------------------------");
-	int rc = cur_floor;
-	request_type_t ret_type;
-	while (get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL) != 0) {
-		rc = get_optimal_request_from_specified_on_search_direction_ver2(request_pool_local,
-				cur_floor, &temp_dir, &ret_type);
-		if(rc == -1){
-			break;
-		}
-		if(rc != cur_floor){
-			cur_floor += (rc-cur_floor)/abs(rc-cur_floor);
-		}
-
-		if(cur_floor == rc){
-			clr_request_type(request_pool_local + rc, ret_type);
-		}
-		/* when 7 up, push 0 up */
-		if(cur_floor == 7 && temp_dir>0){
-			set_request_type(request_pool_local+0, request_call_up);
-		}
-		/** printing **/
-		//print_request_pool(request_pool_local, N_FLOORS);
-		printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-				get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
-	}
-	puts("---------------------------Tests End!!---------------------------");
-	puts("---------------------------Final Result!!---------------------------");
-	print_request_pool(request_pool_local, N_LENGTH_OF_TASK_POOL);
-	printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-			get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
-}
 int get_optimal_request_from_specified_on_search_direction_ver3(
 		const request_type_t * const pool, int specified, int *direction,
 		request_type_t * ret_type) {
@@ -542,8 +269,12 @@ int get_optimal_request_from_specified_on_search_direction_ver3(
 	}
 	return ret;
 }
-void scheduling_test_new_ver3(int cur_floor, int dir,
-		const request_type_t * const pool, const char * testname) {
+
+void scheduling_test_general(int cur_floor, int dir,
+		const request_type_t * const pool, const char * testname,
+		int (*get_optimal_request)(
+				const request_type_t * const pool, int specified, int *direction,
+				request_type_t * ret_type)) {
 
 	request_type_t request_pool_local[N_LENGTH_OF_TASK_POOL];
 	memcpy(request_pool_local, pool, N_LENGTH_OF_TASK_POOL * sizeof(request_type_t));
@@ -556,27 +287,102 @@ void scheduling_test_new_ver3(int cur_floor, int dir,
 	puts("---------------------------Tests Start!!---------------------------");
 	int rc = cur_floor;
 	request_type_t ret_type;
+	int last_none_zero_actual_moving_dir = temp_dir;
+	int mov_dir = temp_dir;
 	while (get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL) != 0) {
-		rc = get_optimal_request_from_specified_on_search_direction_ver3(request_pool_local,
+		rc = get_optimal_request(request_pool_local,
 				cur_floor, &temp_dir, &ret_type);
 		if(rc == -1){
 			break;
 		}
 		if(rc != cur_floor){
-			cur_floor += (rc-cur_floor)/abs(rc-cur_floor);
+			last_none_zero_actual_moving_dir = (rc-cur_floor)/abs(rc-cur_floor);
+			cur_floor += last_none_zero_actual_moving_dir;
+			mov_dir = last_none_zero_actual_moving_dir;
+		}else{
+			mov_dir = 0;
 		}
 
 		if(cur_floor == rc){
 			clr_request_type(request_pool_local + rc, ret_type);
 		}
 		/* when 7 up, push 0 up */
-		if(cur_floor == 7 && temp_dir>0){
+		if(cur_floor == 7 && mov_dir>0){
 			set_request_type(request_pool_local+0, request_call_up);
 		}
 		/** printing **/
 		//print_request_pool(request_pool_local, N_FLOORS);
-		printf("TASKS LEFT %d, current floor is %d, direction %d\n",
-				get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
+		printf("TASKS LEFT %d, current floor is %d, output direction %d, moving dir %d\n",
+				get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir, mov_dir);
+		temp_dir = last_none_zero_actual_moving_dir;
+	}
+	puts("---------------------------Tests End!!---------------------------");
+	puts("---------------------------Final Result!!---------------------------");
+	print_request_pool(request_pool_local, N_LENGTH_OF_TASK_POOL);
+	printf("TASKS LEFT %d, current floor is %d, direction %d\n",
+			get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
+}
+void scheduling_test_general_dynamic(int cur_floor, int dir,
+		const request_type_t * const pool, const char * testname,
+		int (*get_optimal_request)(
+				const request_type_t * const pool, int specified, int *direction,
+				request_type_t * ret_type)) {
+
+	request_type_t request_pool_local[N_LENGTH_OF_TASK_POOL];
+	memcpy(request_pool_local, pool, N_LENGTH_OF_TASK_POOL * sizeof(request_type_t));
+	printf("\n\n\n%s\n", testname);
+	puts("origin pool: ");
+	print_request_pool(request_pool_local, N_LENGTH_OF_TASK_POOL);
+	int temp_dir = dir;
+	printf("TASKS LEFT %d, current floor is %d, direction %d\n",
+			get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir);
+	puts("---------------------------Tests Start!!---------------------------");
+	int rc = cur_floor;
+	request_type_t ret_type;
+	int last_none_zero_actual_moving_dir = temp_dir;
+	int mov_dir = temp_dir;
+	while (get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL) != 0) {
+		rc = get_optimal_request(request_pool_local,
+				cur_floor, &temp_dir, &ret_type);
+		if(rc == -1){
+			break;
+		}
+		if(rc != cur_floor){
+			last_none_zero_actual_moving_dir = (rc-cur_floor)/abs(rc-cur_floor);
+			cur_floor += last_none_zero_actual_moving_dir;
+			mov_dir = last_none_zero_actual_moving_dir;
+		}else{
+			mov_dir = 0;
+		}
+
+		if(cur_floor == rc){
+			clr_request_type(request_pool_local + rc, ret_type);
+		}
+		/* ask if continue or insert some more new req */
+		char new_type;
+		int new_floor;
+		printf("'x' :continue; u/d/c number: new req. \n");
+		scanf("%c %d\n", &new_type, &new_floor);
+		switch (new_type) {
+			case 'x':
+			break;
+			case 'u':
+				set_request_type(request_pool_local+new_floor, request_call_up);
+			break;
+			case 'd':
+				set_request_type(request_pool_local+new_floor, request_call_down);
+			break;
+			case 'c':
+				set_request_type(request_pool_local+new_floor, request_call_cmd);
+			break;
+			default:
+			break;
+		}
+		/** printing **/
+		//print_request_pool(request_pool_local, N_FLOORS);
+		printf("TASKS LEFT %d, current floor is %d, output direction %d, moving dir %d\n",
+				get_nr_of_req(request_pool_local, N_LENGTH_OF_TASK_POOL), cur_floor, temp_dir, mov_dir);
+		temp_dir = last_none_zero_actual_moving_dir;
 	}
 	puts("---------------------------Tests End!!---------------------------");
 	puts("---------------------------Final Result!!---------------------------");
@@ -586,28 +392,13 @@ void scheduling_test_new_ver3(int cur_floor, int dir,
 }
 int main(void) {
 	get_nearest_length_init(N_LENGTH_OF_TASK_POOL);
-	//test1();
-	//test3(7 , -1);
-//	test2();
-//	scheduling_test(7, -1, request_pool3, "7 down");
-//	scheduling_test(8, -1, request_pool2, "8 down");
-//	get_optimal_test(1, request_pool2, "opti: req2");
-//	get_optimal_test(-1, request_pool2, "opti: req2");
-//	scheduling_test(8, 1, request_pool2, "8 up");
-//	scheduling_test_new(8, -1, request_pool2, "8 down");
-//	scheduling_test_new(8, 1, request_pool4, "8 up");
-//	scheduling_test_new(8, -1, request_pool4, "8 down");
-//	scheduling_test(8, 1, request_pool2, "8 up");
-	scheduling_test_new_ver3(8, 1, request_pool2, "8 up");
-	scheduling_test_new_ver2(8, 1, request_pool2, "8 up");
-//	scheduling_test_new_ver2(8, -1, request_pool2, "8 down");
-//	scheduling_test_new_ver2(8, 1, request_pool3, "8 up full");
-//	scheduling_test_new_ver3(8, 1, request_pool3, "8 up full");
-//	scheduling_test_new_ver2(8, -1, request_pool3, "8 down full");
-//	scheduling_test_new_ver2(8, 1, request_pool, "8 up empty");
-//	scheduling_test_new_ver2(8, -1, request_pool, "8 down empty");
 //	scheduling_test(N_LENGTH_OF_TASK_POOL - 1, -1, request_pool3, "top down");
 //	scheduling_test(0, 1, request_pool3, "bottom up");
 //	scheduling_test(N_LENGTH_OF_TASK_POOL - 1, 1, request_pool3, "top up");
+//	scheduling_test_general(8, 1, request_pool3, "8 up full from v1", get_optimal_request_from_specified_on_search_direction);
+//	scheduling_test_general(8, 1, request_pool3, "8 up full from v2", get_optimal_request_from_specified_on_search_direction_ver2);
+	scheduling_test_general_dynamic(8, 1, request_pool3, "8 up full from v3", get_optimal_request_from_specified_on_search_direction_ver3);
+//	scheduling_test_general(N_LENGTH_OF_TASK_POOL - 1, -1, request_pool3, "top down",get_optimal_request_from_specified_on_search_direction_ver3);
+//	scheduling_test_general(0, 1, request_pool3, "bottom up", get_optimal_request_from_specified_on_search_direction_ver3);
 	return 0;
 }
