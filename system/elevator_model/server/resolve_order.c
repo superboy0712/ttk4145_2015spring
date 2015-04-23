@@ -2,344 +2,364 @@
 #include "network_module_udp.h"
 #include "new.h"
 
-ip_struct_t 	new_connection_data;			//initialzied in accept function
-Node_t 				connected_nodes_data;			//initialzied in tcp_accept function
+ip_struct_t new_connection_data;			//initialzied in accept function
+Node_t connected_nodes_data;			//initialzied in tcp_accept function
 
+void* resolve_order_function(void* shared_interface_data) {
 
-void* resolve_order_function(void* shared_interface_data){
-
-		//shared structure part
-	my_interface_t* interface_in_resolve_thrd=(my_interface_t* ) shared_interface_data;
+	//shared structure part
+	my_interface_t* interface_in_resolve_thrd =
+			(my_interface_t*) shared_interface_data;
 
 	//GP variables
-	int 	loop_var					=0;
-	int		temp_send_bytes		=0;		//used for DOJOB_ order send message
-	int 	recv_bytes[N_CLIENT];
-	int		send_desc[N_CLIENT];
+	int loop_var = 0;
+	int temp_send_bytes = 0;		//used for DOJOB_ order send message
+	int recv_bytes[N_CLIENT];
+	int send_desc[N_CLIENT];
 
-		//cost function part
-	int 	desired_index; 
-	int 	temp_order_floor;
-	char	temp_order_dir;
+	//cost function part
+	int desired_index;
+	int temp_order_floor;
+	char temp_order_dir;
 
+	char buf_send_status[SEND_SIZE];
+	char buf_send_order[SEND_SIZE];
+	char buf_recv_ack[SEND_SIZE];
+	char my_IP[INET6_ADDRSTRLEN];
+	char my_status[SEND_SIZE];
 
-	char 	buf_send_status[SEND_SIZE];
-	char 	buf_send_order[SEND_SIZE];
-	char 	buf_recv_ack[SEND_SIZE];
-	char 	my_IP[INET6_ADDRSTRLEN];
-	char 	my_status[SEND_SIZE];
+	strncpy(buf_send_status, "SEND_STATUS", 11);
 
-	strncpy(buf_send_status,"SEND_STATUS",11);
+	struct client_t local_nodes_data[N_CLIENT];
 
-
-	struct client_t 	local_nodes_data[N_CLIENT];
-
-	struct cost_param_t	cost_values;
-
+	struct cost_param_t cost_values;
 
 	my_ip_function(my_IP);
 
-	printf("Resolve Order Thread: My own IP is %s. \n",my_IP);
+	printf("Resolve Order Thread: My own IP is %s. \n", my_IP);
 
-
-	while(1){
+	while (1) {
 
 		pthread_mutex_lock(&interface_in_resolve_thrd->interface_mutex);
 
-			if(interface_in_resolve_thrd->order_floor_flag==TRUE) {
+		if (interface_in_resolve_thrd->order_floor_flag == TRUE) {
 
-				temp_order_floor=interface_in_resolve_thrd->order_floor;
-				temp_order_dir=interface_in_resolve_thrd->order_direction;
+			temp_order_floor = interface_in_resolve_thrd->order_floor;
+			temp_order_dir = interface_in_resolve_thrd->order_direction;
 
-				strncpy(my_status,interface_in_resolve_thrd->interface_status_buffer,SEND_SIZE);
-			
-				pthread_mutex_unlock(&interface_in_resolve_thrd->interface_mutex);
-				
+			strncpy(my_status,
+					interface_in_resolve_thrd->interface_status_buffer,
+					SEND_SIZE);
 
+			pthread_mutex_unlock(&interface_in_resolve_thrd->interface_mutex);
 
-						//get sock descriptors.....
+			//get sock descriptors.....
 
-				pthread_mutex_lock(&connected_nodes_data.node_mutex);		//lock node mutex
+			pthread_mutex_lock(&connected_nodes_data.node_mutex);    //lock node mutex
 
-					for(loop_var=0; loop_var<N_CLIENT; loop_var++){
-						local_nodes_data[loop_var].sock_status=connected_nodes_data.clients[loop_var].sock_status;
-						local_nodes_data[loop_var].sock_data=connected_nodes_data.clients[loop_var].sock_data;
-						local_nodes_data[loop_var].sock_order=connected_nodes_data.clients[loop_var].sock_order;
-						strncpy(local_nodes_data[loop_var].my_ip,connected_nodes_data.clients[loop_var].my_ip,INET6_ADDRSTRLEN);
-			
-					}
+			for (loop_var = 0; loop_var < N_CLIENT; loop_var++) {
+				local_nodes_data[loop_var].sock_status =
+						connected_nodes_data.clients[loop_var].sock_status;
+				local_nodes_data[loop_var].sock_data =
+						connected_nodes_data.clients[loop_var].sock_data;
+				local_nodes_data[loop_var].sock_order =
+						connected_nodes_data.clients[loop_var].sock_order;
+				strncpy(local_nodes_data[loop_var].my_ip,
+						connected_nodes_data.clients[loop_var].my_ip,
+						INET6_ADDRSTRLEN);
 
-				pthread_mutex_unlock(&connected_nodes_data.node_mutex);		//unlock node mutex	
+			}
 
-				
+			pthread_mutex_unlock(&connected_nodes_data.node_mutex);    //unlock node mutex
 
-							//send SEND_STATUS  to everyone non zero sock_status  and expect receive on sock_data from same client 
+			//send SEND_STATUS  to everyone non zero sock_status  and expect receive on sock_data from same client
 
-					for(loop_var=0; loop_var<N_CLIENT; loop_var++){
-							if(local_nodes_data[loop_var].sock_status!=0){
-									send_desc[loop_var]=send(local_nodes_data[loop_var].sock_status, buf_send_status, SEND_SIZE, 0);
-									usleep(100*MS);		//changed from 50MS
+			for (loop_var = 0; loop_var < N_CLIENT; loop_var++) {
+				if (local_nodes_data[loop_var].sock_status != 0) {
+					send_desc[loop_var] = send(
+							local_nodes_data[loop_var].sock_status,
+							buf_send_status, SEND_SIZE, 0);
+					usleep(100 * MS);		//changed from 50MS
 
-										if(send_desc[loop_var]>0){
-											recv_bytes[loop_var]=recv(local_nodes_data[loop_var].sock_data, local_nodes_data[loop_var].buf_read, SEND_SIZE, 0);
+					if (send_desc[loop_var] > 0) {
+						recv_bytes[loop_var] = recv(
+								local_nodes_data[loop_var].sock_data,
+								local_nodes_data[loop_var].buf_read, SEND_SIZE,
+								0);
 
-												if(recv_bytes[loop_var]<=0){
-														printf("Resolve Order Thread: Status Request sent to client %s but nothing received CLOSING\n.",local_nodes_data[loop_var].my_ip);
+						if (recv_bytes[loop_var] <= 0) {
+							printf(
+									"Resolve Order Thread: Status Request sent to client %s but nothing received CLOSING\n.",
+									local_nodes_data[loop_var].my_ip);
 
-																	//EDITED PART
-														close(local_nodes_data[loop_var].sock_status);        
-														close(local_nodes_data[loop_var].sock_data);        	
-														close(local_nodes_data[loop_var].sock_order);			//client's connection closed all sockets...
+							//EDITED PART
+							close(local_nodes_data[loop_var].sock_status);
+							close(local_nodes_data[loop_var].sock_data);
+							close(local_nodes_data[loop_var].sock_order);    //client's connection closed all sockets...
 
+							pthread_mutex_lock(&new_connection_data.ip_mutex);
 
-														pthread_mutex_lock(&new_connection_data.ip_mutex);
-					
-														int delete_flag=0;
-														while(!(delete_flag=ip_delete_function(local_nodes_data[loop_var].my_ip)));
+							int delete_flag = 0;
+							while (!(delete_flag = ip_delete_function(
+									local_nodes_data[loop_var].my_ip)))
+								;
 
-														printf("Resolve Order Thread: Deleting %s ip SUCCESS.\n",local_nodes_data[loop_var].my_ip);//}
-						
-														memset(local_nodes_data[loop_var].my_ip,0,INET6_ADDRSTRLEN);
+							printf(
+									"Resolve Order Thread: Deleting %s ip SUCCESS.\n",
+									local_nodes_data[loop_var].my_ip);		//}
 
-														FD_CLR(local_nodes_data[loop_var].sock_status, &new_connection_data.master_set);
-														FD_CLR(local_nodes_data[loop_var].sock_data, &new_connection_data.master_set);
-														FD_CLR(local_nodes_data[loop_var].sock_order, &new_connection_data.master_set);
+							memset(local_nodes_data[loop_var].my_ip, 0,
+							INET6_ADDRSTRLEN);
 
-														pthread_mutex_unlock(&new_connection_data.ip_mutex);
+							FD_CLR(local_nodes_data[loop_var].sock_status,
+									&new_connection_data.master_set);
+							FD_CLR(local_nodes_data[loop_var].sock_data,
+									&new_connection_data.master_set);
+							FD_CLR(local_nodes_data[loop_var].sock_order,
+									&new_connection_data.master_set);
 
-													/*	pthread_mutex_lock(&connected_nodes_data.node_mutex);
+							pthread_mutex_unlock(&new_connection_data.ip_mutex);
 
-														connected_nodes_data.clients[loop_var].sock_status=local_nodes_data[loop_var].sock_status;
-														connected_nodes_data.clients[loop_var].sock_data=local_nodes_data[loop_var].sock_data;			 
-														connected_nodes_data.clients[loop_var].sock_order=local_nodes_data[loop_var].sock_order;		//update all descriptors, 
-														strncpy(connected_nodes_data.clients[loop_var].my_ip,local_nodes_data[loop_var].my_ip,INET6_ADDRSTRLEN);	
+							/*	pthread_mutex_lock(&connected_nodes_data.node_mutex);
 
-														pthread_mutex_unlock(&connected_nodes_data.node_mutex);*/
-														
-													local_nodes_data[loop_var].sock_status=0;
-													local_nodes_data[loop_var].sock_data=0;
-													local_nodes_data[loop_var].sock_order=0;
+							 connected_nodes_data.clients[loop_var].sock_status=local_nodes_data[loop_var].sock_status;
+							 connected_nodes_data.clients[loop_var].sock_data=local_nodes_data[loop_var].sock_data;
+							 connected_nodes_data.clients[loop_var].sock_order=local_nodes_data[loop_var].sock_order;		//update all descriptors,
+							 strncpy(connected_nodes_data.clients[loop_var].my_ip,local_nodes_data[loop_var].my_ip,INET6_ADDRSTRLEN);
 
-		
-																					//EDITED PART ENDS HERE*/
+							 pthread_mutex_unlock(&connected_nodes_data.node_mutex);*/
 
-												}										
-												else {
-														/*Debug part*/
-														if(!strncmp(local_nodes_data[loop_var].buf_read,"MY_STATUS_",10)){
-																printf("Resolve Order Thread: Status Recieved from client %s is %s\n",local_nodes_data[loop_var].my_ip,local_nodes_data[loop_var].buf_read);
-														}
+							local_nodes_data[loop_var].sock_status = 0;
+							local_nodes_data[loop_var].sock_data = 0;
+							local_nodes_data[loop_var].sock_order = 0;
 
-														else {
-															printf("Resolve Order Thread: Status Reply Recieved in wrong format from client %s and is %s\n",local_nodes_data[loop_var].my_ip,local_nodes_data[loop_var].buf_read);
-														}
-												}
-													/*////////////*/
+							//EDITED PART ENDS HERE*/
 
-										}	//add check here to exclude wrong format replies
+						}
+						else {
+							/*Debug part*/
+							if (!strncmp(local_nodes_data[loop_var].buf_read,
+									"MY_STATUS_", 10)) {
+								printf(
+										"Resolve Order Thread: Status Recieved from client %s is %s\n",
+										local_nodes_data[loop_var].my_ip,
+										local_nodes_data[loop_var].buf_read);
+							}
 
-							}	//if(local_client[loop_var].sock_status!=	
-							
-							else	
-								usleep(50*MS);			
+							else {
+								printf(
+										"Resolve Order Thread: Status Reply Recieved in wrong format from client %s and is %s\n",
+										local_nodes_data[loop_var].my_ip,
+										local_nodes_data[loop_var].buf_read);
+							}
+						}
+						/*////////////*/
 
-					}	//for(i=0;i<N_
+					}    //add check here to exclude wrong format replies
 
-							
-											//extract  MY OWN status at location zero of all arrays.....
+				}    //if(local_client[loop_var].sock_status!=
+
+				else
+					usleep(50 * MS);
+
+			}    //for(i=0;i<N_
+
+			//extract  MY OWN status at location zero of all arrays.....
 //								subString(my_status, 10, 1, &cost_values.temp_floor);
 //								cost_values.temp_floor[1] = '\0';
 //								cost_values.floor[0]=atoi(&cost_values.temp_floor);
 //								subString(my_status, 12, 1, &cost_values.direction[0]);
 //								cost_values.index[0]=1;
-					sscanf(local_nodes_data[loop_var].buf_read, "MY_STATUS_%d_%c_%d_%d_%f_%d_%d",
-															&cost_values.floor[0],
-															&cost_values.direction[0],
-															&cost_values.stop[0],
-															&cost_values.obstrukt[0],
-															&cost_values.floor_position[0],
-															&cost_values.moving_vector[0],
-															&cost_values.timeout_status[0]);
+			sscanf(local_nodes_data[loop_var].buf_read,
+					"MY_STATUS_%d_%c_%d_%d_%f_%d_%d", &cost_values.floor[0],
+					&cost_values.direction[0], &cost_values.stop[0],
+					&cost_values.obstrukt[0], &cost_values.floor_position[0],
+					&cost_values.moving_vector[0],
+					&cost_values.timeout_status[0]);
 
-								
-					int index =1;
+			int index = 1;
 
-					for(loop_var=0; loop_var<N_CLIENT; loop_var++){
+			for (loop_var = 0; loop_var < N_CLIENT; loop_var++) {
 
-							if(recv_bytes[loop_var]>0){
+				if (recv_bytes[loop_var] > 0) {
 
-							
-												//MY_STATUS_2_D_0_0_2.000000_0_1
+					//MY_STATUS_2_D_0_0_2.000000_0_1
 
-											//extract floors...
+					//extract floors...
 //								subString(local_nodes_data[loop_var].buf_read, 10, 1, &cost_values.temp_floor);
 //								cost_values.temp_floor[1] = '\0';
 //								cost_values.floor[index]=atoi(&cost_values.temp_floor);
 //												//extract directions...
 
 //								subString(local_nodes_data[loop_var].buf_read, 12, 1, &cost_values.direction[index]);
-								sscanf(local_nodes_data[loop_var].buf_read, "MY_STATUS_%d_%c_%d_%d_%f_%d_%d",
-										&cost_values.floor[index],
-										&cost_values.direction[index],
-										&cost_values.stop[index],
-										&cost_values.obstrukt[index],
-										&cost_values.floor_position[index],
-										&cost_values.moving_vector[index],
-										&cost_values.timeout_status[index]);
-								/*				//extract STOP button...
-								subString(local_nodes_data[loop_var].buf_read, 14, 1, &cost_values.stop[index]);
-												//extract OBSTRUKT button...
-								subString(local_nodes_data[loop_var].buf_read, 16, 1, &cost_values.obstrukt[index]);
-												//extract floor position...
-								subString(local_nodes_data[loop_var].buf_read, 18, 1, &cost_values.floor_position[index]);
-												//extract moving vector...
-								subString(local_nodes_data[loop_var].buf_read, 27, 1, &cost_values.moving_vector[index]);
-												//extract timeout status...
-								subString(local_nodes_data[loop_var].buf_read, 29, 1, &cost_values.timeout_status[index]);
-								*/
-												//copy sock_desc....
-								cost_values.index[index]=loop_var+1;
+					sscanf(local_nodes_data[loop_var].buf_read,
+							"MY_STATUS_%d_%c_%d_%d_%f_%d_%d",
+							&cost_values.floor[index],
+							&cost_values.direction[index],
+							&cost_values.stop[index],
+							&cost_values.obstrukt[index],
+							&cost_values.floor_position[index],
+							&cost_values.moving_vector[index],
+							&cost_values.timeout_status[index]);
+					/*				//extract STOP button...
+					 subString(local_nodes_data[loop_var].buf_read, 14, 1, &cost_values.stop[index]);
+					 //extract OBSTRUKT button...
+					 subString(local_nodes_data[loop_var].buf_read, 16, 1, &cost_values.obstrukt[index]);
+					 //extract floor position...
+					 subString(local_nodes_data[loop_var].buf_read, 18, 1, &cost_values.floor_position[index]);
+					 //extract moving vector...
+					 subString(local_nodes_data[loop_var].buf_read, 27, 1, &cost_values.moving_vector[index]);
+					 //extract timeout status...
+					 subString(local_nodes_data[loop_var].buf_read, 29, 1, &cost_values.timeout_status[index]);
+					 */
+					//copy sock_desc....
+					cost_values.index[index] = loop_var + 1;
 
-								printf("Resolve Order Thread: Received Client's Floor is %d Direction is %c, stop %d, obs %d, fp %f, mv %d, to %d\n",
-										cost_values.floor[index],
-										cost_values.direction[index],
-										cost_values.stop[index],
-										cost_values.obstrukt[index],
-										cost_values.floor_position[index],
-										cost_values.moving_vector[index],
-										cost_values.timeout_status[index]);	//debug
+					printf(
+							"Resolve Order Thread: Received Client's Floor is %d Direction is %c, stop %d, obs %d, fp %f, mv %d, to %d\n",
+							cost_values.floor[index],
+							cost_values.direction[index],
+							cost_values.stop[index],
+							cost_values.obstrukt[index],
+							cost_values.floor_position[index],
+							cost_values.moving_vector[index],
+							cost_values.timeout_status[index]);    //debug
 
-								index++;
+					index++;
 
-								//usleep(50*MS);
-				
-							
-							}		//if(recv_bytes[loop_
-								
-					}	//for(loop_var=0; loop_var<N_CLIE
+					//usleep(50*MS);
 
-						cost_values.max_index=index;		//maximum number of clients connected including myself.....
+				}		//if(recv_bytes[loop_
 
-										//call cost function...
-						desired_index=cost_function( cost_values, temp_order_floor, temp_order_dir);					
+			}    //for(loop_var=0; loop_var<N_CLIE
 
-						if(desired_index!=0){
-							
-							sprintf(buf_send_order, "DOJOB_%d_%c", temp_order_floor,temp_order_dir);
-							temp_send_bytes=send(local_nodes_data[desired_index-1].sock_order, buf_send_order, SEND_SIZE, 0);		//SOCK_ORDER!!!
-							usleep(50*MS);		//maybe some delay but should not be, ideally
-							printf("\t\t\tResolve Order Thread:Dispatching job %s to client %s order is %d\n",buf_send_order,local_nodes_data[desired_index-1].my_ip,temp_order_floor);
-						
-								if(temp_send_bytes<=0){
+			cost_values.max_index = index;    //maximum number of clients connected including myself.....
 
-									printf("Resolve Order Thread: Failed on sending order to %s client, I shall do this job\n",local_nodes_data[desired_index-1].my_ip);
+			//call cost function...
+			desired_index = cost_function(cost_values, temp_order_floor,
+					temp_order_dir);
 
-										pthread_mutex_lock(&interface_in_resolve_thrd->interface_mutex);
+			if (desired_index != 0) {
 
-										interface_in_resolve_thrd->order_floor=temp_order_floor;
-										interface_in_resolve_thrd->order_floor_flag=FALSE;
+				sprintf(buf_send_order, "DOJOB_%d_%c", temp_order_floor,
+						temp_order_dir);
+				temp_send_bytes = send(
+						local_nodes_data[desired_index - 1].sock_order,
+						buf_send_order, SEND_SIZE, 0);		//SOCK_ORDER!!!
+				usleep(50 * MS);	//maybe some delay but should not be, ideally
+				printf(
+						"\t\t\tResolve Order Thread:Dispatching job %s to client %s order is %d\n",
+						buf_send_order,
+						local_nodes_data[desired_index - 1].my_ip,
+						temp_order_floor);
 
-										pthread_mutex_unlock(&interface_in_resolve_thrd->interface_mutex);
+				if (temp_send_bytes <= 0) {
 
-								}	//if(temp_send_bytes<=
+					printf(
+							"Resolve Order Thread: Failed on sending order to %s client, I shall do this job\n",
+							local_nodes_data[desired_index - 1].my_ip);
 
+					pthread_mutex_lock(
+							&interface_in_resolve_thrd->interface_mutex);
 
-								else {	//else send_bytes were good and go for ACK message
+					interface_in_resolve_thrd->order_floor = temp_order_floor;
+					interface_in_resolve_thrd->order_floor_flag = FALSE;
 
-												pthread_mutex_lock(&interface_in_resolve_thrd->interface_mutex);
+					pthread_mutex_unlock(
+							&interface_in_resolve_thrd->interface_mutex);
 
-												interface_in_resolve_thrd->order_floor=-1;			//clear for main to not add this job in its own queue
-												interface_in_resolve_thrd->order_floor_flag=FALSE;
+				}    //if(temp_send_bytes<=
 
-												pthread_mutex_unlock(&interface_in_resolve_thrd->interface_mutex);
+				else {    //else send_bytes were good and go for ACK message
 
+					pthread_mutex_lock(
+							&interface_in_resolve_thrd->interface_mutex);
 
-								}	//else send_bytes were good and go for ACK message
+					interface_in_resolve_thrd->order_floor = -1;	//clear for main to not add this job in its own queue
+					interface_in_resolve_thrd->order_floor_flag = FALSE;
 
-								usleep(50*MS);
+					pthread_mutex_unlock(
+							&interface_in_resolve_thrd->interface_mutex);
 
-						}	//if(desired_index!
+				}    //else send_bytes were good and go for ACK message
 
+				usleep(50 * MS);
 
-						else {	//myself has lowest cost...
+			}    //if(desired_index!
 
+			else {    //myself has lowest cost...
 
-									printf("Resolve Order Thread:Minimum cost is myself!\n.");
-						
-									pthread_mutex_lock(&interface_in_resolve_thrd->interface_mutex);
+				printf("Resolve Order Thread:Minimum cost is myself!\n.");
 
-									interface_in_resolve_thrd->order_floor=temp_order_floor;
-									interface_in_resolve_thrd->order_floor_flag=FALSE;
+				pthread_mutex_lock(&interface_in_resolve_thrd->interface_mutex);
 
-									pthread_mutex_unlock(&interface_in_resolve_thrd->interface_mutex);
-									
-						}	//else myself has....
+				interface_in_resolve_thrd->order_floor = temp_order_floor;
+				interface_in_resolve_thrd->order_floor_flag = FALSE;
 
-							pthread_mutex_lock(&connected_nodes_data.node_mutex);		//lock node mutex
+				pthread_mutex_unlock(
+						&interface_in_resolve_thrd->interface_mutex);
 
-					for(loop_var=0;loop_var<N_CLIENT;loop_var++){
+			}    //else myself has....
 
-						connected_nodes_data.clients[loop_var].sock_status=local_nodes_data[loop_var].sock_status;
-						connected_nodes_data.clients[loop_var].sock_data=local_nodes_data[loop_var].sock_data;			 
-						connected_nodes_data.clients[loop_var].sock_order=local_nodes_data[loop_var].sock_order;		//update all descriptors, 
-						strncpy(connected_nodes_data.clients[loop_var].my_ip,local_nodes_data[loop_var].my_ip,INET6_ADDRSTRLEN);	
+			pthread_mutex_lock(&connected_nodes_data.node_mutex);    //lock node mutex
 
-					}
+			for (loop_var = 0; loop_var < N_CLIENT; loop_var++) {
 
-				pthread_mutex_unlock(&connected_nodes_data.node_mutex);		//unlock node mutex	 */
+				connected_nodes_data.clients[loop_var].sock_status =
+						local_nodes_data[loop_var].sock_status;
+				connected_nodes_data.clients[loop_var].sock_data =
+						local_nodes_data[loop_var].sock_data;
+				connected_nodes_data.clients[loop_var].sock_order =
+						local_nodes_data[loop_var].sock_order;    //update all descriptors,
+				strncpy(connected_nodes_data.clients[loop_var].my_ip,
+						local_nodes_data[loop_var].my_ip, INET6_ADDRSTRLEN);
 
-						/*clear struct....*/
+			}
 
-						for(loop_var=0; loop_var<N_CLIENT; loop_var++){
+			pthread_mutex_unlock(&connected_nodes_data.node_mutex);    //unlock node mutex	 */
 
-							cost_values.floor[loop_var]=0;
-							cost_values.direction[loop_var]=0;
-							cost_values.index[loop_var]=0;
-							recv_bytes[loop_var]=0;
-								//client's parameter stored locally
-							local_nodes_data[loop_var].sock_status=0;
-							local_nodes_data[loop_var].sock_data=0;
-							local_nodes_data[loop_var].sock_order=0;
-							memset(local_nodes_data[loop_var].my_ip, 0, INET6_ADDRSTRLEN);
-							memset(local_nodes_data[loop_var].buf_read, 0, SEND_SIZE);
-							memset(local_nodes_data[loop_var].buf_send, 0, SEND_SIZE);
-						
-						}
+			/*clear struct....*/
 
+			for (loop_var = 0; loop_var < N_CLIENT; loop_var++) {
 
-					
-			
-			}	//if(interface_in_resolve_thrd->order_f
+				cost_values.floor[loop_var] = 0;
+				cost_values.direction[loop_var] = 0;
+				cost_values.index[loop_var] = 0;
+				recv_bytes[loop_var] = 0;
+				//client's parameter stored locally
+				local_nodes_data[loop_var].sock_status = 0;
+				local_nodes_data[loop_var].sock_data = 0;
+				local_nodes_data[loop_var].sock_order = 0;
+				memset(local_nodes_data[loop_var].my_ip, 0, INET6_ADDRSTRLEN);
+				memset(local_nodes_data[loop_var].buf_read, 0, SEND_SIZE);
+				memset(local_nodes_data[loop_var].buf_send, 0, SEND_SIZE);
 
-			else pthread_mutex_unlock(&interface_in_resolve_thrd->interface_mutex);		//else release mutex outside thread.....
+			}
 
-						/*clear struct....*/
-						for(loop_var=0; loop_var<N_CLIENT; loop_var++){
+		}    //if(interface_in_resolve_thrd->order_f
 
-							cost_values.floor[loop_var]=0;
-							cost_values.direction[loop_var]=0;
-							cost_values.index[loop_var]=0;
-							recv_bytes[loop_var]=0;
-								//client's parameter stored locally
-							local_nodes_data[loop_var].sock_status=0;
-							local_nodes_data[loop_var].sock_data=0;
-							local_nodes_data[loop_var].sock_order=0;
-							memset(local_nodes_data[loop_var].my_ip, 0, INET6_ADDRSTRLEN);
-							memset(local_nodes_data[loop_var].buf_read, 0, SEND_SIZE);
-							memset(local_nodes_data[loop_var].buf_send, 0, SEND_SIZE);
-						
-						}
-			
+		else
+			pthread_mutex_unlock(&interface_in_resolve_thrd->interface_mutex);    //else release mutex outside thread.....
 
+		/*clear struct....*/
+		for (loop_var = 0; loop_var < N_CLIENT; loop_var++) {
 
+			cost_values.floor[loop_var] = 0;
+			cost_values.direction[loop_var] = 0;
+			cost_values.index[loop_var] = 0;
+			recv_bytes[loop_var] = 0;
+			//client's parameter stored locally
+			local_nodes_data[loop_var].sock_status = 0;
+			local_nodes_data[loop_var].sock_data = 0;
+			local_nodes_data[loop_var].sock_order = 0;
+			memset(local_nodes_data[loop_var].my_ip, 0, INET6_ADDRSTRLEN);
+			memset(local_nodes_data[loop_var].buf_read, 0, SEND_SIZE);
+			memset(local_nodes_data[loop_var].buf_send, 0, SEND_SIZE);
 
+		}
 
-		usleep(DELAY*MS);
-	}	//while(1)
-
-
-
+		usleep(DELAY * MS);
+	}    //while(1)
 
 }
-
 

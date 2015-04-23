@@ -50,7 +50,8 @@ int network_test(void) {
 			pthread_mutex_lock(&in_main_interface->interface_mutex);
 
 			in_main_interface->order_floor = rand() % 4;
-			strncpy(in_main_interface->interface_status_buffer, status_buffer, 13);
+			strncpy(in_main_interface->interface_status_buffer, status_buffer,
+					13);
 			in_main_interface->order_direction = rand_dir;
 			in_main_interface->order_floor_flag = TRUE;
 

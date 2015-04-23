@@ -345,12 +345,7 @@ void *request_button_light_controller_thread(void *data){
 	}
 	return NULL;
 }
-pthread_t request_button_light_controller_th, elevator_running_controller_th,
-		stop_button_controller_th, request_button_events_parser_th, init_thread;
-void *controller_layer_main(void *data) {
-	data = NULL;
-	elevator_model_init(NULL);
-	default_task_pool_init(N_FLOORS);
+void init_status_from_backup_if_any(void){
 	request_type_t init_req[N_FLOORS] = {0};
 	int stop_light_init = 0;
 	int dir_init = -1;
@@ -368,6 +363,14 @@ void *controller_layer_main(void *data) {
 	light_status_t towrite = get_light_status();
 	towrite.stop_light = stop_light_init;
 	set_light_status(towrite);
+}
+pthread_t request_button_light_controller_th, elevator_running_controller_th,
+		stop_button_controller_th, request_button_events_parser_th, init_thread;
+void *controller_layer_main(void *data) {
+	data = NULL;
+	elevator_model_init(NULL);
+	default_task_pool_init(N_FLOORS);
+	init_status_from_backup_if_any();
 	int rc = pthread_create(&request_button_light_controller_th, NULL, request_button_light_controller_thread, NULL);
 	if (rc){
 		perror("pthread_create");
@@ -397,8 +400,7 @@ void *controller_layer_main(void *data) {
 	while(1){
 		sleep(10);
 		count++;
-		puts("i am alive. boring");
-		if(count>= 2) exit(0);
+		printf("I am alive. Bored. Running %d seconds from beginning.\n", 10*count);
 	}
 	return 0;
 }
