@@ -457,6 +457,10 @@ void scheduling_test_new_ver2(int cur_floor, int dir,
 		if(cur_floor == rc){
 			clr_request_type(request_pool_local + rc, ret_type);
 		}
+		/* when 7 up, push 0 up */
+		if(cur_floor == 7 && temp_dir>0){
+			set_request_type(request_pool_local+0, request_call_up);
+		}
 		/** printing **/
 		//print_request_pool(request_pool_local, N_FLOORS);
 		printf("TASKS LEFT %d, current floor is %d, direction %d\n",
@@ -564,6 +568,10 @@ void scheduling_test_new_ver3(int cur_floor, int dir,
 
 		if(cur_floor == rc){
 			clr_request_type(request_pool_local + rc, ret_type);
+		}
+		/* when 7 up, push 0 up */
+		if(cur_floor == 7 && temp_dir>0){
+			set_request_type(request_pool_local+0, request_call_up);
 		}
 		/** printing **/
 		//print_request_pool(request_pool_local, N_FLOORS);
