@@ -9,9 +9,9 @@
 int init_network_tcp(char *ip,char *port_num, struct addrinfo **serv_info_p)
 {
 
-	struct addrinfo hints;
-	int sock_desc=0;
-	struct addrinfo * serv_info;
+	struct 	addrinfo hints;
+	int 		sock_desc=0;
+	struct 	addrinfo * serv_info;
 	//struct for timeout part
 	struct timeval tv;
 	tv.tv_sec = 0;
@@ -140,12 +140,3 @@ int init_network_tcp(char *ip,char *port_num, struct addrinfo **serv_info_p)
 }
 
 
-
-/*
-void *get_in_addr(struct sockaddr *sa)
-{
-    return &(((struct sockaddr_in*)sa)->sin_addr);
-}
-
-
-*/

@@ -18,6 +18,7 @@
 #include "../task_pool/lift_task_queue.h"
 #include "../task_pool/taskpool_policies_wrapper.h"
 #include "server/new.h"
+#include "../process_pairs/client_thread.h"
 request_type_t request_buffer[N_FLOORS] = { request_empty } ;/*!< to hold the parsed events, ready to send to the server*/
 /**
  * transition table from button type to request type
@@ -38,7 +39,7 @@ char status_buffer[SEND_SIZE];
 void * request_button_events_parser_thread(void *data){
 	data = NULL;
 	input_status_t input_read;
-	unsigned int dest_floor;
+	unsigned int dest_floor = 0xff;
 	request_type_t dest_type = request_empty;
 	while(1){
 		BEGIN:
@@ -64,7 +65,9 @@ void * request_button_events_parser_thread(void *data){
 				}
 			}
 		}
+
 		pthread_mutex_unlock(input_event_ptr->mutex);
+		if(dest_floor == 0xff) continue;
 		/**
 		 * TODO single elevator first, then include in the inquiry status, cost, send request.
 		 */
@@ -174,7 +177,9 @@ void *elevator_running_controller_thread(void * data){
 	}
 	return NULL;
 }
+
 #define milisec_block_wait_on_reached 200
+int error_exit_from_cage = 0;
 void car_moving_handler(void){
 	struct timespec time_to_wait;
 	struct timespec now;
@@ -201,26 +206,37 @@ void car_moving_handler(void){
 		} else if(cur_pos - cur_floor < -0.1){
 			cur_floor--;
 		}
+		dest_floor = cur_floor;
+		if(cur_floor == N_FLOORS-1) dir = -1;
+		if(cur_floor == 0) dir = 1;
 		temp_dir = dir;
+		if(error_exit_from_cage){
+			error_exit_from_cage = 0;
+			continue;
+		}
 		dest_floor = get_optimal_req(cur_floor, &dir, &type);
 		/**
 		 *  error handling
 		 */
 		if(dest_floor == -1){
-			if(failed_count > 4){
-				puts("fetch empty task 5 times in cage_move_handler, that shouln't happen!");
-				goto ERROR_EXIT;
-			}
-			else if(2<= failed_count && failed_count<=4){
-					if(temp_dir == dir){
-						dir = -dir;
-					}
-					puts("fetch empty task in cage_move_handler, try inverse direction!");
-			}
-			if(cur_floor == N_FLOORS-1) dir = -1;
-			if(cur_floor == 0) dir = 1;
-			failed_count++;
+//			if(failed_count > 4){
+//				puts("fetch empty task 5 times in cage_move_handler, that shouln't happen!");
+//				error_exit_from_cage = 1;
+//				goto ERROR_EXIT;
+//			}
+//			else if(2<= failed_count && failed_count<=4){
+//					if(temp_dir == dir){
+//						dir = -dir;
+//					}
+//					puts("fetch empty task in cage_move_handler, try inverse direction!");
+//			}
 
+			failed_count++;
+			if(temp_dir == dir){
+				dir = -dir;
+			}
+			error_exit_from_cage = 1;
+			//goto ERROR_EXIT;
 			goto ERROR_RETRY;
 		}
 
@@ -269,6 +285,10 @@ EXIT:
 	return;
 }
 void open_wait_close(void){
+	if(error_exit_from_cage == 1){
+		error_exit_from_cage = 0;
+		return;
+	}
 	light_status_t light = get_light_status();
 	light.door_open_light = 1;
 	set_light_status(light);
@@ -320,9 +340,27 @@ void *request_button_light_controller_thread(void *data){
 }
 pthread_t request_button_light_controller_th, elevator_running_controller_th,
 		stop_button_controller_th, request_button_events_parser_th, init_thread;
-int main(int argc, char **argv) {
+void *controller_layer_main(void *data) {
+	data = NULL;
 	elevator_model_init(NULL);
 	default_task_pool_init(N_FLOORS);
+	request_type_t init_req[N_FLOORS] = {0};
+	int stop_light_init = 0;
+	int dir_init = -1;
+	sscanf(init_status_and_backup_buffer,
+			"tasks: %d, %d, %d, %d. stop: %d. dir: %d\n",
+			&init_req[0],
+			&init_req[1],
+			&init_req[2],
+			&init_req[3],
+			&stop_light_init,
+			&dir_init);
+	for(int i=0;i< N_FLOORS; i++){
+		push_request(i,init_req[i]);
+	}
+	light_status_t towrite = get_light_status();
+	towrite.stop_light = stop_light_init;
+	set_light_status(towrite);
 	int rc = pthread_create(&request_button_light_controller_th, NULL, request_button_light_controller_thread, NULL);
 	if (rc){
 		perror("pthread_create");

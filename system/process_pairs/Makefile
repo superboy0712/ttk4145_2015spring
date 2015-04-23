@@ -3,7 +3,7 @@
 #     Author: yulongb
 
 CC = clang
-CFLAGS= -Wall -Wextra -g  
+CFLAGS= -Wall -Wextra -g  -I . ../
 LD = -lpthread
 
 # list of sources

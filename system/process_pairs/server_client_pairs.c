@@ -13,6 +13,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <unistd.h>
+#include "../elevator_model/elevator_model.h"
 pthread_t server_tid, client_tid;
 typedef struct {
 	pthread_mutex_t * const mtx;
@@ -29,10 +30,7 @@ thread_arg_t th_arg =
 pthread_t hello_elevator;
 void *system_payload(void *data){
 	data = NULL;
-	while(1){
-		sleep(1);
-		printf("####################elevator running#####################\n\n");
-	}
+	controller_layer_main(NULL);
 	return NULL;
 }
 void *wrap(void *data){
