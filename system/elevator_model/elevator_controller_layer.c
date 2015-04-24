@@ -189,14 +189,14 @@ void car_moving_handler(void){
 	int cur_floor;
 	float cur_pos = get_current_floor_position();
 	int dir = get_motor_last_none_zero_motor_moving_vector();//get_motor_last_none_zero_motor_moving_vector();
-	int failed_count = 0;
 	int temp_dir;
+	int exception_count = 0;
 	request_type_t type = request_empty;
 	while(1){
 		/* */
-	ERROR_RETRY:
 		cur_pos = get_current_floor_position();
 		cur_floor = get_last_stable_floor();
+		dir = get_motor_last_none_zero_motor_moving_vector();
 		if(dir == 0) {
 			puts("dir equals zero!");
 			dir = 1;
@@ -207,48 +207,34 @@ void car_moving_handler(void){
 		} else if(cur_pos - cur_floor < -0.1){
 			cur_floor--;
 		}
-		dest_floor = cur_floor;
-		if(cur_floor == N_FLOORS-1) dir = -1;
-		if(cur_floor == 0) dir = 1;
 		temp_dir = dir;
-		if(error_exit_from_cage){
-			error_exit_from_cage = 0;
-			continue;
-		}
 		dest_floor = get_optimal_req(cur_floor, &dir, &type);
 		/**
 		 *  error handling
 		 */
 		if(dest_floor == -1){
-//			if(failed_count > 4){
-//				puts("fetch empty task 5 times in cage_move_handler, that shouln't happen!");
-//				error_exit_from_cage = 1;
-//				goto ERROR_EXIT;
-//			}
-//			else if(2<= failed_count && failed_count<=4){
-//					if(temp_dir == dir){
-//						dir = -dir;
-//					}
-//					puts("fetch empty task in cage_move_handler, try inverse direction!");
-//			}
-
-			failed_count++;
+				puts("fetch empty task in cage_move_handler, try inverse direction!");
 			if(temp_dir == dir){
 				dir = -dir;
+				puts("output direction reversed!");
 			}
+			/**
+			 *  raise exception flag
+			 */
 			error_exit_from_cage = 1;
-			//goto ERROR_EXIT;
-			goto ERROR_RETRY;
+			exception_count++;
+			if(exception_count>= 3){
+				exception_count = 0;
+				puts("failed 3 times in car_moving_handler. should not happen!");
+				goto EXIT;
+			}
+			continue;
 		}
 
 		pthread_mutex_lock(floor_reached_event_ptr->mutex);
 		printf("go to desired floor %d\n\n",dest_floor);
 		set_desired_floor_unsafe(dest_floor);
 				/* time_to_wait on reached_event */
-//				time_t delta_sec = (now.tv_nsec+1000000UL*milisec_block_wait_on_reached)/1000000000UL;
-//				unsigned long delta_nsec = (now.tv_nsec+1000000UL*milisec_block_wait_on_reached)%1000000000UL;
-//				time_to_wait.tv_sec = now.tv_sec+delta_sec;
-//				time_to_wait.tv_nsec = now.tv_nsec+delta_nsec;
 				clock_gettime(CLOCK_REALTIME, &now);
 				time_to_wait.tv_sec = now.tv_sec+1;
 				time_to_wait.tv_nsec = now.tv_nsec;
@@ -281,12 +267,14 @@ void car_moving_handler(void){
 /**
  * merge all exits
  */
-ERROR_EXIT:
 EXIT:
 	return;
 }
 void open_wait_close(void){
 	if(error_exit_from_cage == 1){
+		/**
+		 *  if exception raised, never open the door!
+		 */
 		error_exit_from_cage = 0;
 		return;
 	}
