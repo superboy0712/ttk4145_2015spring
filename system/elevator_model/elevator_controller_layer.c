@@ -42,7 +42,6 @@ void * request_button_events_parser_thread(void *data){
 	unsigned int dest_floor;
 	request_type_t dest_type = request_empty;
 	while(1){
-		BEGIN:
 		dest_floor = 0xff;
 		pthread_mutex_lock(input_event_ptr->mutex);
 		pthread_cond_wait(input_event_ptr->cv, input_event_ptr->mutex);
@@ -55,7 +54,7 @@ void * request_button_events_parser_thread(void *data){
 						/* cmd pushed to local directly */
 						push_request(floor, to_request_type[button_type]);
 						pthread_mutex_unlock(input_event_ptr->mutex);
-						goto BEGIN;
+						continue;
 					}else{
 						/* pending for decision */
 						//set_request_type(request_buffer+floor, to_request_type[button_type]);
@@ -73,31 +72,28 @@ void * request_button_events_parser_thread(void *data){
 		 * TODO single elevator first, then include in the inquiry status, cost, send request.
 		 */
 		pthread_mutex_lock(&in_main_interface->interface_mutex);
-
+		/**
+		 *  preparing the order data structure to send to the optimal servant
+		 */
 		in_main_interface->order_floor = dest_floor;
 		strncpy(in_main_interface->interface_status_buffer, status_buffer, 13);
 		in_main_interface->order_direction = (dest_type & request_call_up)? 'U':'D';
 		in_main_interface->order_floor_flag = TRUE;
 		pthread_mutex_unlock(&in_main_interface->interface_mutex);
 
-
-		usleep(10 * MS);
-
-		pthread_mutex_lock(&in_main_interface->interface_mutex);
+		/**
+		 *  polling until the communication module complete transmission
+		 *  we could have used pthread_cond_signal instead of checking flag.
+		 */
 	    int temp_order_floor = 0;
 		while (1) {
 
 			if (in_main_interface->order_floor_flag == FALSE) {
 				printf("Main:Order Flag Cleared by comm module....\n");
 				temp_order_floor = in_main_interface->order_floor;
-				pthread_mutex_unlock(&in_main_interface->interface_mutex);
 				break;
 			}
-
-			else {
-				pthread_mutex_unlock(&in_main_interface->interface_mutex);
-				usleep(10 * MS);
-			}
+			usleep(10 * MS);
 		}
 
 		printf("Final order is %d -1 means someone else is doing\n",

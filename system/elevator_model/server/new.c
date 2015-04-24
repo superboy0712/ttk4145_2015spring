@@ -139,7 +139,7 @@ int cost_function(struct cost_param_t cost_values, int temp_order_floor,
 	int i = 0;
 	int minimum;
 	int temp_diff[N_CLIENT];
-	int minimum_one_s_array_indexes[N_CLIENT];/* several ones are minimum */
+	int minimum_one_s_array_indexes[N_CLIENT];/* for saving the ones that are equally minimum */
 	int mosai_index = 0;
 	int the_opt_idx = 0;
 	memset(minimum_one_s_array_indexes, 0xfff, N_CLIENT * sizeof(int));
@@ -148,10 +148,7 @@ int cost_function(struct cost_param_t cost_values, int temp_order_floor,
 			temp_diff[i] = 0xfff;
 		}
 		else {
-			temp_diff[i] = temp_order_floor - cost_values.floor[i];
-			if (temp_diff[i] < 0) {
-				temp_diff[i] = (-1 * temp_diff[i]);
-			}
+			temp_diff[i] = abs(temp_order_floor - cost_values.floor[i]);
 		}
 
 	}
