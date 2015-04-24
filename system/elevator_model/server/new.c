@@ -197,9 +197,15 @@ int cost_function(struct cost_param_t cost_values, int temp_order_floor,
 		return 0;
 	}
 
-	printf("From Cost Function, minimum distance is %d and index is %d, direction is %c \n",
+	printf("#######From Cost Function, minimum distance is %d and index is %d, direction is %c #######\n",
 			minimum, the_opt_idx, cost_values.direction[the_opt_idx]);
 	//printf(" last dir %c \n", cost_values.direction[the_opt_idx]);
+	if (the_opt_idx == 0) {
+			/**
+			 *  means the optimal decision is myself
+			 */
+			return 0;
+	}
 	return cost_values.index[the_opt_idx];
 }
 
