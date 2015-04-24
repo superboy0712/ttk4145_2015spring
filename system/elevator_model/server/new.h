@@ -148,7 +148,7 @@ struct cost_param_t {
 
 	int timeout_status[N_CLIENT]; /**< Timeout status of client*/
 
-	int max_index; /**< Maximum value of index*/
+	int max_connected_nodes; /**< Maximum value of index*/
 
 };
 

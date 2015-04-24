@@ -143,32 +143,44 @@ int cost_function(struct cost_param_t cost_values, int temp_order_floor,
 	int mosai_index = 0;
 	int the_opt_idx = 0;
 	memset(minimum_one_s_array_indexes, 0xfff, N_CLIENT * sizeof(int));
-	for (i = 0; i < cost_values.max_index; i++) {
+	for (i = 0; i < cost_values.max_connected_nodes; i++) {
+		/**
+		 *  exclude those exceptional ones from candidates
+		 */
 		if (cost_values.stop[i] == 1 || cost_values.obstrukt[i] == 1) {
-			temp_diff[i] = 0xfff;
+			temp_diff[i] = abs(temp_order_floor - cost_values.floor[i]) + 1000;/* give the exceptional ones a  large difference */
 		}
 		else {
 			temp_diff[i] = abs(temp_order_floor - cost_values.floor[i]);
 		}
 
 	}
-
+	/* get the minimum difference and its idx */
 	minimum = temp_diff[0];
 
-	for (i = 1; i < cost_values.max_index; i++) {
-		if (temp_diff[i] < minimum) {
+	for (i = 0; i < cost_values.max_connected_nodes; i++) {
+		if (temp_diff[i] <= minimum) {
 			minimum = temp_diff[i];
 			the_opt_idx = i;
 		}
 	}
 
-	for (int i = 1; i < cost_values.max_index; ++i) {
+	/* there may be several equally minimum difference candidates, save their idxes
+	 * mosai_index is the number of the candidates */
+	for (int i = 0; i < cost_values.max_connected_nodes; ++i) {
 		if (temp_diff[i] == minimum) {
 			minimum_one_s_array_indexes[mosai_index] = i;
 			mosai_index++;
 		}
 	}
-
+//	printf("mosai_index %d. ", mosai_index);
+//	for (int i = 0; i < mosai_index; ++i) {
+//		printf("mosai_index[%d] %d. ", i, minimum_one_s_array_indexes[i]);
+//	}
+//	puts("");
+	/**
+	 *  if the distances are the same, get the first of matched direction from these candidates
+	 */
 	for (int i = 0; i < mosai_index; ++i) {
 		int temp = minimum_one_s_array_indexes[mosai_index];
 		if (temp_order_dircetion == cost_values.direction[temp]) {
@@ -179,11 +191,15 @@ int cost_function(struct cost_param_t cost_values, int temp_order_floor,
 
 	}
 	if (the_opt_idx == 0) {
+		/**
+		 *  means the optimal decision is myself
+		 */
 		return 0;
 	}
 
-	printf("From Cost Fucntion, min is %d and index is %d, direction is %c \n",
+	printf("From Cost Function, minimum distance is %d and index is %d, direction is %c \n",
 			minimum, the_opt_idx, cost_values.direction[the_opt_idx]);
+	//printf(" last dir %c \n", cost_values.direction[the_opt_idx]);
 	return cost_values.index[the_opt_idx];
 }
 
