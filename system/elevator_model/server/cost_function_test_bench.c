@@ -136,6 +136,14 @@ struct cost_param_t t4 = {
 		.max_connected_nodes = 16,/**??? whether it is index or number of nodes???*/
 		.index = { 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 }
 };
+struct cost_param_t t5 = {
+		.floor = { 3, 2},
+		.direction = { 'U','U'},
+		.stop = { 1, 1 },
+		.obstrukt = {0},
+		.max_connected_nodes = 2,/**??? whether it is index or number of nodes???*/
+		.index = { 10, 11 }
+};
 void main(void){
 	char dir = 'U';
 	int idx;
@@ -145,7 +153,7 @@ void main(void){
 //	}
 	dir = 'U';
 	for (int i = 0; i < 4; ++i) {
-		idx = cost_function(t4, i, dir );
+		idx = cost_function(t5, i, dir );
 		printf("floor %d, dir %c, optimal idx %d\n", i, dir, idx);
 	}
 //	dir = 'D';
