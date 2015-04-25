@@ -30,7 +30,8 @@ void * client_main(void * data) {
 	struct addrinfo hints, *res;
 	int sockfd;
 	data = NULL;
-	sprintf(init_status_and_backup_buffer, "tasks: 0, 0, 0, 0. stop: 0. dir: -1\n");
+	/* "tasks: %d, %d, %d, %d. stop: %d. dir: %d. last_stable_floor: %d.\n" */
+	sprintf(init_status_and_backup_buffer, "tasks: 0, 0, 0, 0. stop: 0. dir: -1. last_stable_floor: 0.\n");
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;

@@ -333,20 +333,24 @@ void init_status_from_backup_if_any(void){
 	request_type_t init_req[N_FLOORS] = {0};
 	int stop_light_init = 0;
 	int dir_init = -1;
+	int last_stable_floor = 0;
 	sscanf(init_status_and_backup_buffer,
-			"tasks: %d, %d, %d, %d. stop: %d. dir: %d\n",
+			"tasks: %d, %d, %d, %d. stop: %d. dir: %d. last_stable_floor: %d.\n",
 			&init_req[0],
 			&init_req[1],
 			&init_req[2],
 			&init_req[3],
 			&stop_light_init,
-			&dir_init);
+			&dir_init,
+			&last_stable_floor);
 	for(int i=0;i< N_FLOORS; i++){
 		push_request(i,init_req[i]);
 	}
 	light_status_t towrite = get_light_status();
 	towrite.stop_light = stop_light_init;
 	set_light_status(towrite);
+
+	set_desired_floor(last_stable_floor);
 }
 pthread_t request_button_light_controller_th, elevator_running_controller_th,
 		stop_button_controller_th, request_button_events_parser_th, init_thread;
