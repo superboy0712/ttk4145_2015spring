@@ -145,22 +145,22 @@ int cost_function(struct cost_param_t cost_values, int order_floor,
 		cost_array[i] = fabs(temp_order_floor - cost_values.floor_position[i]);
 
 		/* if the cage is moving and moving away from order floor, then add extra cost */
-		if(cost_values.moving_vector[i] != 0){
-			if(cost_values.moving_vector[i]*(temp_order_floor - cost_values.floor_position[i]) <= 0){
-				/* order vector and current moving vector are in opposite direction */
-
-				if(cost_values.moving_vector[i]*dir < 0){
-					/* calling in different direction */
-					if(dir > 0){
-						cost_array[i] = cost_values.floor_position[i] + temp_order_floor;
-					}else{
-						cost_array[i] = 2*(N_FLOORS - 1) - cost_values.floor_position[i] - temp_order_floor;
-					}
-				}else{
-					cost_array[i] = 2*(N_FLOORS - 1) - fabs(temp_order_floor - cost_values.floor_position[i]);
-				}
-			}
-		}
+//		if(cost_values.moving_vector[i] != 0){
+//			if(cost_values.moving_vector[i]*(temp_order_floor - cost_values.floor_position[i]) <= 0){
+//				/* order vector and current moving vector are in opposite direction */
+//
+//				if(cost_values.moving_vector[i]*dir < 0){
+//					/* calling in different direction */
+//					if(dir > 0){
+//						cost_array[i] = cost_values.floor_position[i] + temp_order_floor;
+//					}else{
+//						cost_array[i] = 2*(N_FLOORS - 1) - cost_values.floor_position[i] - temp_order_floor;
+//					}
+//				}else{
+//					cost_array[i] = 2*(N_FLOORS - 1) - fabs(temp_order_floor - cost_values.floor_position[i]);
+//				}
+//			}
+//		}
 
 		/* if exception,  add a large cost */
 		if(cost_values.stop[i] == 1 || cost_values.obstrukt[i] == 1) {
