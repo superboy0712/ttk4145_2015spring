@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <sys/time.h>
 #include "../drivers/elev.h"
 #include "../drivers/io.h"
 #include "elevator_model_data_structure.h"
