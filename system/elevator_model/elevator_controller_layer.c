@@ -354,12 +354,48 @@ void init_status_from_backup_if_any(void){
 }
 void *key_board_input_thread(void *data){
 	while(1){
-		int floor;
+		int dest_floor;
 		char dir;
 		printf("Input from stdin: number u/d\n");
-		scanf("%d %c\n", &floor, &dir);
-		request_type_t type = (dir == 'u')? request_call_up : request_call_down;
-		push_request(floor, type);
+		scanf("cmd %d %c\n", &floor, &dir);
+		request_type_t dest_type = (dir == 'u')? request_call_up : request_call_down;
+		/**
+		 * TODO single elevator first, then include in the inquiry status, cost, send request.
+		 */
+		pthread_mutex_lock(&in_main_interface->interface_mutex);
+		/**
+		 *  preparing the order data structure to send to the optimal servant
+		 */
+		in_main_interface->order_floor = dest_floor;
+		strncpy(in_main_interface->interface_status_buffer, status_buffer, 13);
+		in_main_interface->order_direction = (dest_type & request_call_up)? 'U':'D';
+		in_main_interface->order_floor_flag = TRUE;
+		pthread_mutex_unlock(&in_main_interface->interface_mutex);
+
+		/**
+		 *  polling until the communication module complete transmission
+		 *  we could have used pthread_cond_signal instead of checking flag.
+		 */
+	    int temp_order_floor = 0;
+		while (1) {
+
+			if (in_main_interface->order_floor_flag == FALSE) {
+				printf("Main:Order Flag Cleared by comm module....\n");
+				temp_order_floor = in_main_interface->order_floor;
+				break;
+			}
+			usleep(10 * MS);
+		}
+
+		printf("Final order is %d -1 means someone else is doing\n",
+				temp_order_floor);
+		if(temp_order_floor!=-1){
+			/* I serve */
+			push_request(dest_floor, dest_type);
+		}else{
+			/* others serve */
+
+		}
 	}
 	return NULL;
 }
