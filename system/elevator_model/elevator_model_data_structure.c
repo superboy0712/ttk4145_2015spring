@@ -228,7 +228,7 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 					 */
 					exception_timer_in_100ms++;
 					if(exception_timer_in_100ms >= 70){
-						static reverse_count = 0;
+						static int reverse_count = 0;
 						/**
 						 *  elevator should arrive at/pass by any sensor in 7 seconds
 						 *  while moving, if not, reverse direction
