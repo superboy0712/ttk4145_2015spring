@@ -357,7 +357,7 @@ void *key_board_input_thread(void *data){
 		int dest_floor;
 		char dir;
 		printf("Input from stdin: number u/d\n");
-		scanf("cmd %d %c\n", &floor, &dir);
+		scanf("cmd %d %c\n", &dest_floor, &dir);
 		request_type_t dest_type = (dir == 'u')? request_call_up : request_call_down;
 		/**
 		 * TODO single elevator first, then include in the inquiry status, cost, send request.
