@@ -24,7 +24,7 @@ void* resolve_order_function(void* shared_interface_data) {
 
 	char buf_send_status[SEND_SIZE];
 	char buf_send_order[SEND_SIZE];
-	char buf_recv_ack[SEND_SIZE];
+	//char buf_recv_ack[SEND_SIZE];
 	char my_IP[INET6_ADDRSTRLEN];
 	char my_status[SEND_SIZE];
 
