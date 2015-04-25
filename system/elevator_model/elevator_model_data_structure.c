@@ -187,7 +187,8 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 	data_motor_controller_ptr = NULL;
 	int read_desired_floor = 0;
 	desired_floor = (elev_get_floor_sensor_signal()==-1)? elev_get_floor_sensor_signal(): 0;
-	unsigned int exception_timer_in_100ms = 0;
+	unsigned int inbetween_timeout_exception_timer_in_100ms = 0;
+	unsigned int motor_stuck_at_sensor_timeout_exception_timer_in_100ms = 0;
 	while(1)
 	{
 		read_desired_floor = desired_floor;
@@ -206,7 +207,7 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 
 				int sensor = elev_get_floor_sensor_signal();  /* last floor */
 				if(sensor != -1){
-					exception_timer_in_100ms = 0;
+					inbetween_timeout_exception_timer_in_100ms = 0;
 					last_stable_floor = sensor;
 					motor_moving_vector = read_desired_floor - sensor;
 					if(motor_moving_vector!=0){
@@ -219,21 +220,29 @@ void * motor_driver_thread(void * data_motor_controller_ptr)
 							pthread_cond_broadcast((floor_reached_event.cv));
 							//printf("reached signal broadcast!\n\n\n");
 						pthread_mutex_unlock((floor_reached_event.mutex));
+					}else{
+						motor_stuck_at_sensor_timeout_exception_timer_in_100ms++;
+						if(motor_stuck_at_sensor_timeout_exception_timer_in_100ms >= 50){
+							light_status.stop_light = 1;
+							printf("####Warning!!! elevator stuck at sensor with motor running for 5 seconds.####\n "
+									"####Into disorder state. Motor stop!!\n####");
+						}
 					}
 				} else {
+					motor_stuck_at_sensor_timeout_exception_timer_in_100ms = 0;
 					/**
 					 * TODO add timeout detection here. if the sensor
 					 * keep -1 for longer than 10 seconds, change direction;
 					 * if still -1, then means power was down, init necessarily
 					 */
-					exception_timer_in_100ms++;
-					if(exception_timer_in_100ms >= 70){
+					inbetween_timeout_exception_timer_in_100ms++;
+					if(inbetween_timeout_exception_timer_in_100ms >= 70){
 						static int reverse_count = 0;
 						/**
 						 *  elevator should arrive at/pass by any sensor in 7 seconds
 						 *  while moving, if not, reverse direction
 						 */
-						exception_timer_in_100ms = 0;
+						inbetween_timeout_exception_timer_in_100ms = 0;
 						last_none_zero_motor_moving_vector = -last_none_zero_motor_moving_vector;
 						reverse_count++;
 						puts("####Warning!! motor reverse to see if can reach any sensor!####");

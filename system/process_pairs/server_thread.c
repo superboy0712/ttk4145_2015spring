@@ -97,14 +97,17 @@ static void * server( void * th_dp){
 		/**
 		 *  status message
 		 */
-		sprintf(tasks_and_stop_light_backup, "tasks: %d, %d, %d, %d. stop: %d. dir: %d. last_stable_floor: %d.\n",
+		sprintf(tasks_and_stop_light_backup, "tasks: %d, %d, %d, %d. stop: %d. dir: %d. last_stable_floor: %d."
+				" position %f. moving vector %d.\n",
 				get_request(0, request_up_dn_cmd),
 				get_request(1, request_up_dn_cmd),
 				get_request(2, request_up_dn_cmd),
 				get_request(3, request_up_dn_cmd),
 				get_light_status().stop_light,
 				get_motor_last_none_zero_motor_moving_vector(),
-				get_last_stable_floor());
+				get_last_stable_floor(),
+				get_current_floor_position(),
+				get_motor_moving_vector());
 		rc_lth = send(p->client_fd, tasks_and_stop_light_backup, strlen(tasks_and_stop_light_backup)+1, MSG_NOSIGNAL );
 		if(rc_lth == 0){
 			printf("client close the socket %d\n", p->client_fd);
