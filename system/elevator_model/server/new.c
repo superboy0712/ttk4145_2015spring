@@ -1,7 +1,7 @@
 #include "network_module_tcp.h"
 #include "network_module_udp.h"
 #include "new.h"
-
+#include <math.h>
 char global_ipArray[N_CLIENT][INET6_ADDRSTRLEN];	//shared between functios
 
 void* initialzie_function(void * shared_interface_data) {
