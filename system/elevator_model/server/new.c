@@ -132,80 +132,64 @@ void makeStatus(char *status, int floor, char dir) {
 	sprintf(status, "MY_STATUS_%d_%c", floor, dir);
 
 }
-
-int cost_function(struct cost_param_t cost_values, int temp_order_floor,
+#define N_FLOORS 4
+int cost_function_v2(struct cost_param_t cost_values, int order_floor,
 		char temp_order_dircetion) {
-
-	int i = 0;
-	int minimum;
-	int temp_diff[N_CLIENT];
-	int minimum_one_s_array_indexes[N_CLIENT];/* for saving the ones that are equally minimum */
-	int mosai_index = 0;
 	int the_opt_idx = 0;
-	memset(minimum_one_s_array_indexes, 0xfff, N_CLIENT * sizeof(int));
-	for (i = 0; i < cost_values.max_connected_nodes; i++) {
-		/**
-		 *  exclude those exceptional ones from candidates
-		 */
-		if (cost_values.stop[i] == 1 || cost_values.obstrukt[i] == 1) {
-			temp_diff[i] = abs(temp_order_floor - cost_values.floor[i]) + 1000;/* give the exceptional ones a  large difference */
+	float temp_order_floor = (float)order_floor;
+	double cost_array[N_CLIENT];
+	int dir = (temp_order_dircetion == 'U')? 1 : -1;
+	/* calculate cost of each connected node */
+	for (int i = 0; i < cost_values.max_connected_nodes; i++) {
+		/* basis cost */
+		cost_array[i] = fabs(temp_order_floor - cost_values.floor_position[i]);
+
+		/* if the cage is moving and moving away from order floor, then add extra cost */
+		if(cost_values.moving_vector[i] != 0){
+			if(cost_values.moving_vector[i]*(temp_order_floor - cost_values.floor_position[i]) <= 0){
+				/* order vector and current moving vector are in opposite direction */
+
+				if(cost_values.moving_vector[i]*dir < 0){
+					/* calling in different direction */
+					if(dir > 0){
+						cost_array[i] = cost_values.floor_position[i] + temp_order_floor;
+					}else{
+						cost_array[i] = 2*(N_FLOORS - 1) - cost_values.floor_position[i] - temp_order_floor;
+					}
+				}else{
+					cost_array[i] = 2*(N_FLOORS - 1) - fabs(temp_order_floor - cost_values.floor_position[i]);
+				}
+			}
 		}
-		else {
-			temp_diff[i] = abs(temp_order_floor - cost_values.floor[i]);
+
+		/* if exception,  add a large cost */
+		if(cost_values.stop[i] == 1 || cost_values.obstrukt[i] == 1) {
+			cost_array[i] += 1000;/* give the exceptional ones a  large difference */
 		}
 
 	}
-	/* get the minimum difference and its idx */
-	minimum = temp_diff[0];
 
-	for (i = 0; i < cost_values.max_connected_nodes; i++) {
-		if (temp_diff[i] <= minimum) {
-			minimum = temp_diff[i];
+    /* find the first minumum one, and return its index in the connected array */
+	float minimum = cost_array[0];
+
+	for(int i = 0; i < cost_values.max_connected_nodes; i++) {
+		if (cost_array[i] < minimum) {
+			minimum = cost_array[i];
 			the_opt_idx = i;
 		}
 	}
-
-	/* there may be several equally minimum difference candidates, save their idxes
-	 * mosai_index is the number of the candidates */
-	for (int i = 0; i < cost_values.max_connected_nodes; ++i) {
-		if (temp_diff[i] == minimum) {
-			minimum_one_s_array_indexes[mosai_index] = i;
-			mosai_index++;
-		}
+	/* print */
+	printf("The cost_array: ");
+	for(int i = 0; i < cost_values.max_connected_nodes; i++){
+		printf(" {[%d]%4.1lf},", cost_values.index[i], cost_array[i]);
 	}
-//	printf("mosai_index %d. ", mosai_index);
-//	for (int i = 0; i < mosai_index; ++i) {
-//		printf("mosai_index[%d] %d. ", i, minimum_one_s_array_indexes[i]);
-//	}
-//	puts("");
-	/**
-	 *  if the distances are the same, get the first of matched direction from these candidates
-	 */
-	for (int i = 0; i < mosai_index; ++i) {
-		int temp = minimum_one_s_array_indexes[mosai_index];
-		if (temp_order_dircetion == cost_values.direction[temp]) {
-			the_opt_idx = temp;
-			/* the first matched direction wins */
-			break;
-		}
+	puts("");
 
-	}
-	if (the_opt_idx == 0) {
-		/**
-		 *  means the optimal decision is myself
-		 */
+	printf("Order is %d_%c, the minimum cost is {%4.1lf from index [%d]}\n",
+			order_floor, temp_order_dircetion, cost_array[the_opt_idx], cost_values.index[the_opt_idx]);
+	if(the_opt_idx == 0)/*< myself */
 		return 0;
-	}
 
-	printf("#######From Cost Function, minimum distance is %d and index is %d, direction is %c #######\n",
-			minimum, the_opt_idx, cost_values.direction[the_opt_idx]);
-	//printf(" last dir %c \n", cost_values.direction[the_opt_idx]);
-	if (the_opt_idx == 0) {
-			/**
-			 *  means the optimal decision is myself
-			 */
-			return 0;
-	}
 	return cost_values.index[the_opt_idx];
 }
 
