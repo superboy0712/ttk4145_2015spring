@@ -352,8 +352,19 @@ void init_status_from_backup_if_any(void){
 
 	set_desired_floor(last_stable_floor);
 }
+void *key_board_input_thread(void *data){
+	while(1){
+		int floor;
+		char dir;
+		printf("Input from stdin: number u/d\n");
+		scanf("%d %c\n", &floor, &dir);
+		request_type_t type = (dir == 'u')? request_call_up : request_call_down;
+		push_request(floor, type);
+	}
+	return NULL;
+}
 pthread_t request_button_light_controller_th, elevator_running_controller_th,
-		stop_button_controller_th, request_button_events_parser_th, init_thread;
+		stop_button_controller_th, request_button_events_parser_th, init_thread, key_board_th;
 void *controller_layer_main(void *data) {
 	data = NULL;
 	elevator_model_init(NULL);
@@ -380,6 +391,11 @@ void *controller_layer_main(void *data) {
 		exit(-1);
 	}
 	rc = pthread_create(&init_thread, NULL, initialzie_function, in_main_interface);
+	if (rc){
+		perror("pthread_create");
+		exit(-1);
+	}
+	rc = pthread_create(&key_board_th, NULL, key_board_input_thread, NULL);
 	if (rc){
 		perror("pthread_create");
 		exit(-1);

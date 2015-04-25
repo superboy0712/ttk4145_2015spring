@@ -124,14 +124,11 @@ int cost_function_v2(struct cost_param_t cost_values, int order_floor,
 				if(cost_values.moving_vector[i]*dir < 0){
 					/* calling in different direction */
 					if(dir > 0){
-						assert(cost_values.moving_vector[i]<0);
 						cost_array[i] = cost_values.floor_position[i] + temp_order_floor;
 					}else{
-						assert(cost_values.moving_vector[i]>0);
 						cost_array[i] = 2*(N_FLOORS - 1) - cost_values.floor_position[i] - temp_order_floor;
 					}
 				}else{
-					assert(cost_values.moving_vector[i]*dir > 0);
 					cost_array[i] = 2*(N_FLOORS - 1) - fabs(temp_order_floor - cost_values.floor_position[i]);
 				}
 			}
@@ -171,6 +168,7 @@ struct cost_param_t t1 = {
 		.floor = { 0, 1, 2, 3, 0, 1, 2, 3 },
 		.direction = { 'U','U','U','U','D','D','D','D'},
 		.stop = { 0 },
+		.floor_position = { 0, 1, 2, 3, 0, 1, 2, 3 },
 		.obstrukt = {0},
 		.max_connected_nodes = 8,/**??? whether it is index or number of nodes???*/
 		.index = { 10, 11, 12, 13, 14, 15, 16, 17 }
@@ -185,14 +183,72 @@ struct cost_param_t t2 = {
 		.index = { 10, 11, 12, 13, 14, 15, 16, 17 }
 };
 
-struct cost_param_t t3 = {
-		.floor = { 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3 },
-		.direction = { 'U','U','U','U','D','D','D','D','U','U','U','U','D','D','D','D'},
-		.stop = { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1 },
+struct cost_param_t t3_mv_up = {
+		.floor = { 0, 1, 2, 3, 0, 1, 2, 3 },
+		.direction = { 'U','U','U','U','D','D','D','D'},
+		.stop = { 0 },
 		.obstrukt = {0},
-		.max_connected_nodes = 16,/**??? whether it is index or number of nodes???*/
-		.index = { 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 }
+		.floor_position = { 0, 1, 2, 3, 0, 1, 2, 3 },
+		.max_connected_nodes = 8,/**??? whether it is index or number of nodes???*/
+		.index = { 10, 11, 12, 13, 14, 15, 16, 17 },
+		.moving_vector = {0, 0, 0, 0, 1, 1, 1, 1}
 };
+
+struct cost_param_t t3_mv_dn = {
+		.floor = { 0, 1, 2, 3, 0, 1, 2, 3 },
+		.direction = { 'U','U','U','U','D','D','D','D'},
+		.stop = { 0 },
+		.obstrukt = {0},
+		.floor_position = { 0, 1, 2, 3, 0, 1, 2, 3 },
+		.max_connected_nodes = 8,/**??? whether it is index or number of nodes???*/
+		.index = { 10, 11, 12, 13, 14, 15, 16, 17 },
+		.moving_vector = {0, 0, 0, 0, -1, -1, -1, -1}
+};
+
+struct cost_param_t t4_mv_up = {
+		.floor = { 0, 1, 2, 3, 0, 1, 2, 3 },
+		.direction = { 'U','U','U','U','D','D','D','D'},
+		.stop = { 1, 1, 1, 1, 0, 0, 0, 0 },
+		.obstrukt = {0},
+		.floor_position = { 0, 1, 2, 3, 0, 1, 2, 3 },
+		.max_connected_nodes = 8,/**??? whether it is index or number of nodes???*/
+		.index = { 10, 11, 12, 13, 14, 15, 16, 17 },
+		.moving_vector = {0, 0, 0, 0, 1, 1, 1, 1}
+};
+
+struct cost_param_t t4_mv_dn = {
+		.floor = { 0, 1, 2, 3, 0, 1, 2, 3 },
+		.direction = { 'U','U','U','U','D','D','D','D'},
+		.obstrukt = { 1, 1, 1, 1, 0, 0, 0, 0 },
+		.stop = {0},
+		.floor_position = { 0, 1, 2, 3, 0, 1, 2, 3 },
+		.max_connected_nodes = 8,/**??? whether it is index or number of nodes???*/
+		.index = { 10, 11, 12, 13, 14, 15, 16, 17 },
+		.moving_vector = {0, 0, 0, 0, -1, -1, -1, -1}
+};
+
+struct cost_param_t t5_mv_up = {
+		.floor = { 0, 1, 2, 3, 0, 1, 2, 3 },
+		.direction = { 'U','U','U','U','D','D','D','D'},
+		.stop = {0 },
+		.obstrukt = {0},
+		.floor_position = { 0, 1, 2, 3, 0, 1, 2, 3 },
+		.max_connected_nodes = 8,/**??? whether it is index or number of nodes???*/
+		.index = { 10, 11, 12, 13, 14, 15, 16, 17 },
+		.moving_vector = {1, 1, 1, 1, 1, 1, 1, 1}
+};
+
+struct cost_param_t t5_mv_dn = {
+		.floor = { 0, 1, 2, 3, 0, 1, 2, 3 },
+		.direction = { 'U','U','U','U','D','D','D','D'},
+		.obstrukt = { 0 },
+		.stop = {0},
+		.floor_position = { 0, 1, 2, 3, 0, 1, 2, 3 },
+		.max_connected_nodes = 8,/**??? whether it is index or number of nodes???*/
+		.index = { 10, 11, 12, 13, 14, 15, 16, 17 },
+		.moving_vector = {-1, -1, -1, -1, -1, -1, -1, -1}
+};
+
 
 struct cost_param_t t4 = {
 		.floor = { 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3 },
@@ -238,21 +294,22 @@ struct cost_param_t t7 = {
 void main(void){
 	char dir = 'U';
 	int idx;
-//	for (int i = 0; i < 4; ++i) {
-//		idx = cost_function(t1, i, dir );
-//		printf("floor %d, dir %c, optimal idx %d\n", i, dir, idx);
-//	}
-//	dir = 'U';
-//	for (int i = 0; i < 4; ++i) {
-//		idx = cost_function_v2(t6, i, dir );
-//		printf("floor %d, dir %c, optimal idx %d\n", i, dir, idx);
-//	}
+	for (int i = 0; i < 4; ++i) {
+		idx = cost_function_v2(t5_mv_up, i, dir );
+		printf("floor %d, dir %c, optimal idx %d\n", i, dir, idx);
+	}
+	puts("");
+	dir = 'D';
+	for (int i = 0; i < 4; ++i) {
+		idx = cost_function_v2(t5_mv_dn, i, dir );
+		printf("floor %d, dir %c, optimal idx %d\n", i, dir, idx);
+	}
 //	dir = 'D';
 //	for (int i = 0; i < 4; ++i) {
 //		idx = cost_function(t4, i, dir );
 //		printf("floor %d, dir %c, optimal idx %d\n", i, dir, idx);
 //	}
-	int i = 2;
+//	int i = 2;
 //	dir = 'U';
 //	idx = cost_function_v2(t7, i, dir );
 //	printf("floor %d, dir %c, optimal idx %d\n", i, dir, idx);
@@ -261,12 +318,12 @@ void main(void){
 //	dir = 'D';
 //	idx = cost_function_v2(t7, i, dir );
 //	printf("floor %d, dir %c, optimal idx %d\n", i, dir, idx);
-
-	 i = 1;
-	dir = 'D';
-	idx = cost_function_v2(t7, i, dir );
-	printf("floor %d, dir %c, optimal idx %d\n", i, dir, idx);
-
+//
+//	 i = 1;
+//	dir = 'D';
+//	idx = cost_function_v2(t7, i, dir );
+//	printf("floor %d, dir %c, optimal idx %d\n", i, dir, idx);
+//
 //	 i = 0;
 //	dir = 'D';
 //	idx = cost_function_v2(t7, i, dir );
