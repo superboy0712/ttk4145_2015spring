@@ -48,21 +48,6 @@ int init_network_tcp(char *ip, char *port_num, struct addrinfo **serv_info);
  int send_string_udp(char *buf_send, int size,int sock_desc,struct addrinfo *serv_info);
  int send_integer_udp(int *buf_send, int size,int sock_desc, struct addrinfo *serv_info);
 
-
-
-
-/**
-* Arguments:
-*1) buf_send=Pointer to buffer data to be sent
-*1) 2) size= Size of data in bytes to be sent.
-*1) 3) sock_desc=Socket_descriptor.
-*1) 4) serv_info=Server/Client Address details.
-*1) Returns no. of bytes received
-*1) int receive_string_udp(char *buf_recv,int size,int sock_desc, struct addrinfo *serv_info);
-*1) int receive_integer_udp(int *buf_recv,int size,int sock_desc, struct addrinfo *serv_info);
-*1)
-*1) int reconnect_server_tcp();
-*1) int reconnect_client_tcp();
 */
 
 //void *get_in_addr(struct sockaddr *sa);
