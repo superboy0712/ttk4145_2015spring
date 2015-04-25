@@ -133,7 +133,7 @@ void makeStatus(char *status, int floor, char dir) {
 
 }
 #define N_FLOORS 4
-int cost_function_v2(struct cost_param_t cost_values, int order_floor,
+int cost_function(struct cost_param_t cost_values, int order_floor,
 		char temp_order_dircetion) {
 	int the_opt_idx = 0;
 	float temp_order_floor = (float)order_floor;
