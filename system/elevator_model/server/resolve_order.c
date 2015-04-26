@@ -170,7 +170,7 @@ void* resolve_order_function(void* shared_interface_data) {
 //								cost_values.floor[0]=atoi(&cost_values.temp_floor);
 //								subString(my_status, 12, 1, &cost_values.direction[0]);
 //								cost_values.index[0]=1;
-			sscanf(local_nodes_data[loop_var].buf_read,
+			sscanf( my_status,
 					"MY_STATUS_%d_%c_%d_%d_%f_%d_%d", &cost_values.floor[0],
 					&cost_values.direction[0], &cost_values.stop[0],
 					&cost_values.obstrukt[0], &cost_values.floor_position[0],
