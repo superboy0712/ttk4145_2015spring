@@ -139,6 +139,15 @@ int cost_function(struct cost_param_t cost_values, int order_floor,
 	float temp_order_floor = (float)order_floor;
 	double cost_array[N_CLIENT];
 	int dir = (temp_order_dircetion == 'U')? 1 : -1;
+	puts("cost  orig values: ");
+	for (int i = 0; i < cost_values.max_connected_nodes; i++){
+		printf("[%d] pos: %f, mv: %d, last_dir %c, floor %d\n",
+				i,
+				cost_values.floor_position[i],
+				cost_values.moving_vector[i],
+				cost_values.direction[i],
+				cost_values.floor[i]);
+	}
 	/* calculate cost of each connected node */
 	for (int i = 0; i < cost_values.max_connected_nodes; i++) {
 		/* basis cost */
